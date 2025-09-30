@@ -29,14 +29,25 @@
             background: #000;
             min-height: 100vh;
             overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Mobile Layout */
         .mobile-container {
             width: 100%;
+            margin: 0;
+            padding: 0;
             background: #000;
             min-height: 100vh;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Status Bar */
@@ -415,6 +426,8 @@
             width: 100%;
             margin: 0;
             padding: 0;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Mobile Sidebar */
@@ -538,6 +551,8 @@
             width: 100%;
             margin: 0;
             padding: 0;
+            justify-content: center;
+            align-items: center;
         }
 
         .mobile-main.sidebar-open {
@@ -731,6 +746,16 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+        
+        @keyframes slideInDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutUp {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(-100%); opacity: 0; }
         }
 
         /* Loading */

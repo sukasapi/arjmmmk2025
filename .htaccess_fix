@@ -1,0 +1,110 @@
+# AR Model Viewer - Server Fix for 403 and MIME Type Issues
+# Simple configuration to fix JavaScript loading issues
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Force HTTPS (optional - comment out if not needed)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# MIME Types - Fix JavaScript MIME type issues
+<IfModule mod_mime.c>
+    # JavaScript files - Multiple MIME types for compatibility
+    AddType application/javascript .js
+    AddType text/javascript .js
+    AddType application/x-javascript .js
+    
+    # GLB/GLTF 3D Models
+    AddType model/gltf-binary .glb
+    AddType model/gltf+json .gltf
+    AddType application/octet-stream .glb
+    
+    # Audio files
+    AddType audio/mpeg .mp3
+    AddType audio/wav .wav
+    AddType audio/ogg .ogg
+    
+    # JSON files
+    AddType application/json .json
+    
+    # CSS files
+    AddType text/css .css
+    
+    # HTML files
+    AddType text/html .html .htm
+    
+    # WebXR and AR related
+    AddType application/wasm .wasm
+    AddType text/plain .js.map
+</IfModule>
+
+# Allow access to all files - Fix 403 Forbidden errors
+<FilesMatch "\.(js|css|html|htm|json|glb|gltf|mp3|wav|ogg|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$">
+    Require all granted
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Specific JavaScript file access
+<Files "appAR.js">
+    Require all granted
+    Header set Content-Type "application/javascript"
+    Header set Access-Control-Allow-Origin "*"
+</Files>
+
+<Files "app.js">
+    Require all granted
+    Header set Content-Type "application/javascript"
+    Header set Access-Control-Allow-Origin "*"
+</Files>
+
+# Security Headers - Minimal for compatibility
+<IfModule mod_headers.c>
+    # Prevent MIME type sniffing
+    Header always set X-Content-Type-Options nosniff
+    
+    # Enable XSS protection
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Content Security Policy - Relaxed for AR/WebXR
+    Header always set Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https:; font-src 'self' https://fonts.gstatic.com;"
+</IfModule>
+
+# Compression for better performance
+<IfModule mod_deflate.c>
+    # Compress JavaScript, CSS, HTML
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# Browser Caching - Minimal for development
+<IfModule mod_expires.c>
+    ExpiresActive on
+    
+    # JavaScript and CSS
+    ExpiresByType application/javascript "access plus 1 hour"
+    ExpiresByType text/javascript "access plus 1 hour"
+    ExpiresByType text/css "access plus 1 hour"
+    
+    # HTML - No cache for development
+    ExpiresByType text/html "access plus 0 seconds"
+    
+    # 3D Models and Audio
+    ExpiresByType model/gltf-binary "access plus 1 day"
+    ExpiresByType model/gltf+json "access plus 1 day"
+    ExpiresByType audio/mpeg "access plus 1 day"
+</IfModule>
+
+# Error handling
+ErrorDocument 403 "Access denied. Please check file permissions."
+ErrorDocument 404 "File not found. Please check the URL."
+
+# Directory browsing (disable for security)
+Options -Indexes
+
+# Follow symbolic links
+Options +FollowSymLinks

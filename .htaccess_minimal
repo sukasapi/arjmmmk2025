@@ -1,0 +1,27 @@
+# Minimal .htaccess for AR Model Viewer
+# Use this if the main .htaccess doesn't work
+
+# MIME Types
+AddType application/javascript .js
+AddType text/javascript .js
+AddType model/gltf-binary .glb
+AddType model/gltf+json .gltf
+AddType audio/mpeg .mp3
+AddType application/json .json
+AddType text/css .css
+
+# Allow access to all files
+<FilesMatch "\.(js|css|html|htm|json|glb|gltf|mp3|png|jpg|jpeg|gif|svg)$">
+    Require all granted
+</FilesMatch>
+
+# JavaScript files
+<Files "appAR.js">
+    Require all granted
+    Header set Content-Type "application/javascript"
+</Files>
+
+<Files "app.js">
+    Require all granted
+    Header set Content-Type "application/javascript"
+</Files>
