@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Code Object Capture</title>
+    <script>
+        // Redirect to AR mode if mobile device detected
+        (function() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isTablet = /ipad|android(?!.*mobile)/i.test(userAgent);
+            
+            if (isMobileDevice || isTablet) {
+                // Check if we're already on indexAR.html
+                if (!window.location.pathname.includes('indexAR.html')) {
+                    window.location.href = 'indexAR.html';
+                }
+            }
+        })();
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #007AFF;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Mobile Layout */
+        .mobile-container {
+            width: 100%;
+            max-width: 375px;
+            margin: 0 auto;
+            background: #000;
+            min-height: 100vh;
+            position: relative;
+            display: none;
+        }
+
+        .mobile-container.active {
+            display: block;
+        }
+
+        /* Desktop Layout */
+        .desktop-container {
+            display: none;
+            min-height: 100vh;
+            background: #f5f5f7;
+            position: relative;
+        }
+
+        .desktop-container.active {
+            display: flex;
+        }
+
+        .desktop-sidebar {
+            width: 300px;
+            background: #1c1c1e;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .desktop-sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .hamburger-menu {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .hamburger-menu:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .hamburger-menu.sidebar-hidden {
+            left: 20px;
+            transform: translateX(0);
+            z-index: 1002;
+        }
+
+        .desktop-main {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .desktop-main.sidebar-closed {
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 998;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .reset-btn {
+            background: #8e8e93;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .next-btn {
+            background: #8e8e93;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .next-btn.active {
+            background: #007AFF;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* 3D Scan Screen */
+        .scan-screen {
+            text-align: center;
+            color: white;
+        }
+
+        .scan-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .capture-area {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 20px auto;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .capture-handles {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .handle-tl { top: -10px; left: -10px; }
+        .handle-tr { top: -10px; right: -10px; }
+        .handle-bl { bottom: -10px; left: -10px; }
+        .handle-br { bottom: -10px; right: -10px; }
+        .handle-t { top: -10px; left: 50%; transform: translateX(-50%); }
+        .handle-b { bottom: -10px; left: 50%; transform: translateX(-50%); }
+        .handle-l { left: -10px; top: 50%; transform: translateY(-50%); }
+        .handle-r { right: -10px; top: 50%; transform: translateY(-50%); }
+
+        .capture-instructions {
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .start-capture-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* 3D Modeling Screen */
+        .modeling-screen {
+            text-align: center;
+            color: white;
+        }
+
+        .modeling-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .model-preview {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .model-placeholder {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+        }
+
+        .placement-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+            border: 2px dashed white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* AR QR Codes Screen */
+        .qr-screen {
+            text-align: center;
+            color: white;
+            background: #1c1c1e;
+            padding: 40px 20px;
+        }
+
+        .qr-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .success-message {
+            margin-bottom: 30px;
+        }
+
+        .success-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .success-text {
+            font-size: 14px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+        }
+
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: white;
+            border-radius: 15px;
+            margin: 30px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .qr-pattern {
+            width: 160px;
+            height: 160px;
+            background: 
+                linear-gradient(90deg, #000 25%, transparent 25%),
+                linear-gradient(0deg, #000 25%, transparent 25%);
+            background-size: 20px 20px;
+            border-radius: 10px;
+        }
+
+        .qr-logo {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #007AFF;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .view-ar-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 auto;
+        }
+
+        /* Footer */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .footer-icon {
+            width: 30px;
+            height: 30px;
+            background: #8e8e93;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+        }
+
+        .progress-indicator {
+            color: white;
+            font-size: 14px;
+        }
+
+        /* Canvas */
+        #canvas {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+
+        #desktop-canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            background: transparent;
+        }
+
+        /* Desktop Styles */
+        .desktop-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1c1c1e;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .desktop-canvas-container {
+            width: 600px;
+            height: 400px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+            position: relative;
+            cursor: grab;
+            transition: all 0.3s ease;
+        }
+
+        .desktop-canvas-container.sidebar-closed {
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 999;
+            margin-bottom: 0;
+            box-shadow: none;
+        }
+
+        .desktop-canvas-container:active {
+            cursor: grabbing;
+        }
+
+        .desktop-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Object Controls */
+        .object-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            z-index: 1000;
+            min-width: 200px;
+            transform: translateX(250px);
+            transition: transform 0.3s ease;
+        }
+
+        .object-controls.open {
+            transform: translateX(0);
+        }
+
+        .controls-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls-toggle:hover {
+            background: #0056b3;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        .control-slider {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: #8e8e93;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            flex: 1;
+            min-width: 60px;
+        }
+
+        .control-btn:hover {
+            background: #6d6d70;
+        }
+
+        .control-btn.active {
+            background: #007AFF;
+        }
+
+
+        /* Model Gallery */
+        .model-gallery {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .model-item {
+            background: #2c2c2e;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .model-item:hover {
+            background: #3a3a3c;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .model-item.selected {
+            border-color: #007AFF;
+            background: #3a3a3c;
+        }
+
+        .model-preview {
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .model-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .model-thumbnail-error {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .model-info h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: white;
+        }
+
+        .model-info p {
+            margin: 0;
+            font-size: 12px;
+            color: #8e8e93;
+        }
+
+        .model-load-btn {
+            width: 100%;
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .model-load-btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .model-load-btn:disabled {
+            background: #8e8e93;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .desktop-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .desktop-btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+
+        .desktop-btn-secondary {
+            background: #8e8e93;
+            color: white;
+        }
+
+        .desktop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .desktop-status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .desktop-status.mobile {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .desktop-status.desktop {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .desktop-container {
+                display: none !important;
+            }
+            
+            .mobile-container {
+                display: block !important;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-container {
+                display: none !important;
+            }
+            
+            .desktop-container {
+                display: flex !important;
+            }
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            color: white;
+            font-style: italic;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff3b30;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Mobile Layout -->
+    <div class="mobile-container" id="mobile-container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span id="mobile-time">1:02</span>
+            </div>
+            <div class="status-right">
+                <span>📶</span>
+                <span>4G</span>
+                <span>🔋</span>
+            </div>
+        </div>
+
+        <!-- 3D Scan Screen -->
+        <div class="screen" id="scan-screen">
+            <div class="header">
+                <button class="reset-btn" onclick="resetApp()">Reset</button>
+                <div></div>
+            </div>
+            
+            <div class="main-content">
+                <div class="scan-screen">
+                    <h1 class="scan-title">3D Scan</h1>
+                    
+                    <div class="capture-area" id="capture-area">
+                        <div class="capture-handles handle-tl"></div>
+                        <div class="capture-handles handle-tr"></div>
+                        <div class="capture-handles handle-bl"></div>
+                        <div class="capture-handles handle-br"></div>
+                        <div class="capture-handles handle-t"></div>
+                        <div class="capture-handles handle-b"></div>
+                        <div class="capture-handles handle-l"></div>
+                        <div class="capture-handles handle-r"></div>
+                        
+                        <canvas id="mobile-canvas"></canvas>
+                    </div>
+                    
+                    <div class="capture-instructions">
+                        <h3>AR Code Object Capture</h3>
+                        <p>Move around to ensure that the whole object is inside the box. Drag handles to manually resize.</p>
+                    </div>
+                    
+                    <button class="start-capture-btn" onclick="startCapture()">Start Capture</button>
+                    
+                    <div class="loading" id="mobile-loading">Capturing object...</div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <div class="footer-icon">↻</div>
+                <div class="progress-indicator">1/3</div>
+                <div class="footer-icon">?</div>
+            </div>
+        </div>
+
+        <!-- 3D Modeling Screen -->
+        <div class="screen" id="modeling-screen" style="display: none;">
+            <div class="header">
+                <button class="reset-btn" onclick="resetApp()">Reset</button>
+                <button class="next-btn" onclick="nextStep()">Next</button>
+            </div>
+            
+            <div class="main-content">
+                <div class="modeling-screen">
+                    <h1 class="modeling-title">3D Modeling</h1>
+                    
+                    <div class="model-preview">
+                        <div class="model-placeholder" id="model-placeholder">📦</div>
+                        <div class="placement-indicator">
+                            <div style="width: 60px; height: 60px; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 40px; height: 40px; background: white; border-radius: 50%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <div class="footer-icon">🖼️</div>
+                <div class="progress-indicator">2/3</div>
+                <div class="footer-icon">📷</div>
+            </div>
+        </div>
+
+        <!-- AR QR Codes Screen -->
+        <div class="screen" id="qr-screen" style="display: none;">
+            <div class="header">
+                <button class="reset-btn" onclick="resetApp()">Reset</button>
+                <div></div>
+            </div>
+            
+            <div class="main-content">
+                <div class="qr-screen">
+                    <h1 class="qr-title">AR QR Codes</h1>
+                    
+                    <div class="success-message">
+                        <h2 class="success-title">3D Model Created</h2>
+                        <p class="success-text">Your 3D model has been saved in the .USDZ format in the following directory:</p>
+                        <p class="success-text">On My iPhone/AR Code/</p>
+                        <p class="success-text">Your AR Code has been successfully generated and added to your AR Code dashboard.</p>
+                    </div>
+                    
+                    <div class="qr-code">
+                        <div class="qr-pattern"></div>
+                        <div class="qr-logo">AR</div>
+                    </div>
+                    
+                    <button class="view-ar-btn" onclick="viewInAR()">
+                        <span>📦</span>
+                        View in AR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Desktop Layout -->
+    <div class="desktop-container" id="desktop-container">
+        <!-- Hamburger Menu -->
+        <button class="hamburger-menu" id="hamburger-menu" onclick="toggleSidebar()">☰</button>
+        
+        <div class="desktop-sidebar" id="desktop-sidebar">
+            <h2 style="color: white; margin-bottom: 20px;">AR Model Viewer</h2>
+            
+            <div class="desktop-status" id="desktop-status">
+                💻 Desktop Mode - AR Not Available
+            </div>
+            
+            <!-- Model Gallery -->
+            <div class="model-gallery" id="model-gallery">
+                <!-- Models will be loaded dynamically -->
+            </div>
+            
+            <div class="desktop-controls" style="flex-direction: column; gap: 10px;">
+                <button class="desktop-btn desktop-btn-secondary" onclick="resetDesktop()">Reset View</button>
+            </div>
+            
+            <div style="margin-top: 20px; color: #8e8e93; font-size: 14px;">
+                <p>Desktop mode provides 3D model viewing with white background. AR features are only available on mobile devices.</p>
+                <p style="margin-top: 10px; font-size: 12px;">Select a model from the gallery above to load it.</p>
+            </div>
+        </div>
+        
+        <div class="desktop-main">
+            <h1 class="desktop-title">3D Model Viewer</h1>
+            
+            <div class="desktop-canvas-container">
+                <canvas id="desktop-canvas"></canvas>
+                
+                <!-- Object Controls -->
+                <button class="controls-toggle" id="controls-toggle" onclick="toggleObjectControls()">⚙️</button>
+                
+                <div class="object-controls" id="object-controls">
+                    <div class="control-group">
+                        <label class="control-label">Zoom</label>
+                        <input type="range" class="control-slider" id="zoom-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateZoom(this.value)">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Rotation Speed</label>
+                        <input type="range" class="control-slider" id="rotation-slider" min="0" max="0.02" step="0.001" value="0.005" oninput="updateRotationSpeed(this.value)">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Position</label>
+                        <div class="control-buttons">
+                            <button class="control-btn" onclick="resetPosition()">Reset</button>
+                            <button class="control-btn" onclick="centerObject()">Center</button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Lighting Intensity</label>
+                        <input type="range" class="control-slider" id="lighting-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateLighting(this.value)">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Auto Rotate</label>
+                        <div class="control-buttons">
+                            <button class="control-btn active" id="auto-rotate-btn" onclick="toggleAutoRotate()">ON</button>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <div class="loading" id="desktop-loading">Loading model...</div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification">
+        AR mode only available on mobile devices!
+    </div>
+
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- WebXR Polyfill -->
+    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@2.0.3/build/webxr-polyfill.js"></script>
+    
+    <script src="app.js"></script>
+</body>
+</html>

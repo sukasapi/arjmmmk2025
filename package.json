@@ -1,0 +1,27 @@
+{
+  "name": "ar-model-viewer",
+  "version": "1.0.0",
+  "description": "Aplikasi AR untuk menampilkan model 3D dengan format GLB",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080 -c-1",
+    "dev": "npx live-server --port=8080 --open=/index.html"
+  },
+  "keywords": [
+    "ar",
+    "webxr",
+    "threejs",
+    "3d",
+    "glb",
+    "model-viewer"
+  ],
+  "author": "AR Model Viewer",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

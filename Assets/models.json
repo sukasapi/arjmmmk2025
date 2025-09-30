@@ -1,0 +1,22 @@
+[
+    {
+        "id": "aztec",
+        "name": "Aztec Artifact",
+        "file": "aztec.glb",
+        "description": "Ancient Aztec ceremonial artifact",
+        "icon": "🏛️",
+        "category": "Historical",
+        "thumbnail": "aztec.png",
+        "audio": "aztec.mp3"
+    },
+    {
+        "id": "jagannath_puri_temple",
+        "name": "Jagannath Puri Temple",
+        "file": "jagannath_puri_temple_model.glb",
+        "description": "Sacred Hindu temple architecture",
+        "icon": "🕉️",
+        "category": "Religious",
+        "thumbnail": "jagannath_puri_temple_model.png",
+        "audio": "jagannath_puri_temple_model.mp3"
+    }
+]

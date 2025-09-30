@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Code Object Capture</title>
+    <script>
+        // Redirect to desktop mode if not mobile device
+        (function() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+            const isTablet = /ipad|android(?!.*mobile)/i.test(userAgent);
+            
+            if (!isMobileDevice && !isTablet) {
+                // Redirect to desktop mode
+                window.location.href = 'index.html';
+            }
+        })();
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #007AFF;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Mobile Layout */
+        .mobile-container {
+            width: 100%;
+            max-width: 375px;
+            margin: 0 auto;
+            background: #000;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-right {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .reset-btn {
+            background: #8e8e93;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .next-btn {
+            background: #8e8e93;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .next-btn.active {
+            background: #007AFF;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* 3D Scan Screen */
+        .scan-screen {
+            text-align: center;
+            color: white;
+        }
+
+        .scan-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .capture-area {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 20px auto;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .capture-handles {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .handle-tl { top: -10px; left: -10px; }
+        .handle-tr { top: -10px; right: -10px; }
+        .handle-bl { bottom: -10px; left: -10px; }
+        .handle-br { bottom: -10px; right: -10px; }
+        .handle-t { top: -10px; left: 50%; transform: translateX(-50%); }
+        .handle-b { bottom: -10px; left: 50%; transform: translateX(-50%); }
+        .handle-l { left: -10px; top: 50%; transform: translateY(-50%); }
+        .handle-r { right: -10px; top: 50%; transform: translateY(-50%); }
+
+        .capture-instructions {
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .start-capture-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* 3D Modeling Screen */
+        .modeling-screen {
+            text-align: center;
+            color: white;
+        }
+
+        .modeling-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .model-preview {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .model-placeholder {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+        }
+
+        .placement-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+            border: 2px dashed white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* AR QR Codes Screen */
+        .qr-screen {
+            text-align: center;
+            color: white;
+            background: #1c1c1e;
+            padding: 40px 20px;
+        }
+
+        .qr-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .success-message {
+            margin-bottom: 30px;
+        }
+
+        .success-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .success-text {
+            font-size: 14px;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+        }
+
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: white;
+            border-radius: 15px;
+            margin: 30px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .qr-pattern {
+            width: 160px;
+            height: 160px;
+            background: 
+                linear-gradient(90deg, #000 25%, transparent 25%),
+                linear-gradient(0deg, #000 25%, transparent 25%);
+            background-size: 20px 20px;
+            border-radius: 10px;
+        }
+
+        .qr-logo {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #007AFF;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .view-ar-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 auto;
+        }
+
+        /* Footer */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .footer-icon {
+            width: 30px;
+            height: 30px;
+            background: #8e8e93;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+        }
+
+        .progress-indicator {
+            color: white;
+            font-size: 14px;
+        }
+
+        /* Canvas */
+        #ar-canvas {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            color: white;
+            font-style: italic;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff3b30;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        /* AR Mode Styles */
+        .ar-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 1000;
+        }
+
+        .ar-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1001;
+        }
+
+        .ar-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .ar-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .ar-btn.primary {
+            background: #007AFF;
+        }
+
+        .ar-btn.primary:hover {
+            background: #0056b3;
+        }
+
+
+    </style>
+</head>
+<body>
+    <!-- Mobile Layout -->
+    <div class="mobile-container" id="mobile-container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span id="mobile-time">1:02</span>
+            </div>
+            <div class="status-right">
+                <span>📶</span>
+                <span>4G</span>
+                <span>🔋</span>
+            </div>
+        </div>
+
+        <!-- 3D Scan Screen -->
+        <div class="screen" id="scan-screen">
+            <div class="header">
+                <button class="reset-btn" onclick="resetApp()">Reset</button>
+                <div></div>
+            </div>
+            
+            <div class="main-content">
+                <div class="scan-screen">
+                    <h1 class="scan-title">3D Scan</h1>
+                    
+                    <div class="capture-area" id="capture-area">
+                        <div class="capture-handles handle-tl"></div>
+                        <div class="capture-handles handle-tr"></div>
+                        <div class="capture-handles handle-bl"></div>
+                        <div class="capture-handles handle-br"></div>
+                        <div class="capture-handles handle-t"></div>
+                        <div class="capture-handles handle-b"></div>
+                        <div class="capture-handles handle-l"></div>
+                        <div class="capture-handles handle-r"></div>
+                        
+                        <canvas id="ar-canvas"></canvas>
+                    </div>
+                    
+                    <div class="capture-instructions">
+                        <h3>AR Code Object Capture</h3>
+                        <p>Move around to ensure that the whole object is inside the box. Drag handles to manually resize.</p>
+                    </div>
+                    
+                    <button class="start-capture-btn" onclick="startCapture()">Start Capture</button>
+                    
+                    <div class="loading" id="mobile-loading">Capturing object...</div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <div class="footer-icon">↻</div>
+                <div class="progress-indicator">1/3</div>
+                <div class="footer-icon">?</div>
+            </div>
+        </div>
+
+        <!-- 3D Modeling Screen -->
+        <div class="screen" id="modeling-screen" style="display: none;">
+            <div class="header">
+                <button class="reset-btn" onclick="resetApp()">Reset</button>
+                <button class="next-btn" onclick="nextStep()">Next</button>
+            </div>
+            
+            <div class="main-content">
+                <div class="modeling-screen">
+                    <h1 class="modeling-title">3D Modeling</h1>
+                    
+                    <div class="model-preview">
+                        <div class="model-placeholder" id="model-placeholder">📦</div>
+                        <div class="placement-indicator">
+                            <div style="width: 60px; height: 60px; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 40px; height: 40px; background: white; border-radius: 50%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <div class="footer-icon">🖼️</div>
+                <div class="progress-indicator">2/3</div>
+                <div class="footer-icon">📷</div>
+            </div>
+        </div>
+
+        <!-- AR QR Codes Screen -->
+        <div class="screen" id="qr-screen" style="display: none;">
+            <div class="header">
+                <button class="reset-btn" onclick="resetApp()">Reset</button>
+                <div></div>
+            </div>
+            
+            <div class="main-content">
+                <div class="qr-screen">
+                    <h1 class="qr-title">AR QR Codes</h1>
+                    
+                    <div class="success-message">
+                        <h2 class="success-title">3D Model Created</h2>
+                        <p class="success-text">Your 3D model has been saved in the .USDZ format in the following directory:</p>
+                        <p class="success-text">On My iPhone/AR Code/</p>
+                        <p class="success-text">Your AR Code has been successfully generated and added to your AR Code dashboard.</p>
+                    </div>
+                    
+                    <div class="qr-code">
+                        <div class="qr-pattern"></div>
+                        <div class="qr-logo">AR</div>
+                    </div>
+                    
+                    <button class="view-ar-btn" onclick="viewInAR()">
+                        <span>📦</span>
+                        View in AR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AR Mode Overlay -->
+    <div class="ar-mode" id="ar-mode" style="display: none;">
+        <div class="ar-controls">
+            <button class="ar-btn" onclick="exitAR()">Exit AR</button>
+            <button class="ar-btn primary" onclick="placeModel()">Place Model</button>
+        </div>
+        
+    </div>
+
+    <div id="notification" class="notification">
+        AR mode activated!
+    </div>
+
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- WebXR Polyfill -->
+    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@2.0.3/build/webxr-polyfill.js"></script>
+    
+    <script src="appAR.js"></script>
+</body>
+</html>
