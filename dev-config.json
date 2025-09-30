@@ -1,0 +1,76 @@
+{
+  "development": {
+    "server": {
+      "port": 8000,
+      "host": "localhost",
+      "protocol": "http"
+    },
+    "https": {
+      "enabled": false,
+      "port": 8443,
+      "cert": "ssl/server.crt",
+      "key": "ssl/server.key"
+    },
+    "features": {
+      "camera": true,
+      "audio": true,
+      "ar": true,
+      "webxr": false
+    },
+    "debug": {
+      "enabled": true,
+      "console": true,
+      "performance": true
+    }
+  },
+  "production": {
+    "server": {
+      "port": 443,
+      "host": "your-domain.com",
+      "protocol": "https"
+    },
+    "https": {
+      "enabled": true,
+      "cert": "/path/to/certificate.crt",
+      "key": "/path/to/private.key"
+    },
+    "features": {
+      "camera": true,
+      "audio": true,
+      "ar": true,
+      "webxr": true
+    },
+    "debug": {
+      "enabled": false,
+      "console": false,
+      "performance": false
+    }
+  },
+  "mobile": {
+    "userAgent": [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)",
+      "Mozilla/5.0 (Linux; Android 10; SM-G975F)",
+      "Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X)"
+    ],
+    "features": {
+      "touch": true,
+      "camera": true,
+      "gyroscope": true,
+      "accelerometer": true
+    }
+  },
+  "browsers": {
+    "supported": [
+      "Chrome",
+      "Firefox",
+      "Safari",
+      "Edge"
+    ],
+    "minVersions": {
+      "Chrome": "80",
+      "Firefox": "75",
+      "Safari": "13",
+      "Edge": "80"
+    }
+  }
+}

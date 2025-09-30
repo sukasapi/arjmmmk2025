@@ -67,12 +67,22 @@ class ARModelViewer {
         // Add click event listener to enable camera on any user interaction
         document.addEventListener('click', () => {
             if (!this.cameraFeedActive) {
+                console.log('User clicked, trying to enable camera...');
                 this.forceCameraInit();
             }
         }, { once: true });
         
         document.addEventListener('touchstart', () => {
             if (!this.cameraFeedActive) {
+                console.log('User touched, trying to enable camera...');
+                this.forceCameraInit();
+            }
+        }, { once: true });
+        
+        // Add additional event listeners for better camera access
+        document.addEventListener('touchend', () => {
+            if (!this.cameraFeedActive) {
+                console.log('User touch ended, trying to enable camera...');
                 this.forceCameraInit();
             }
         }, { once: true });
@@ -81,6 +91,11 @@ class ARModelViewer {
         setTimeout(() => {
             this.showMarkerInstructions();
         }, 2000);
+        
+        // Add quick access button for testing
+        setTimeout(() => {
+            this.addQuickAccessButton();
+        }, 5000);
         
         this.simulateTrackerDetection();
     }
@@ -356,12 +371,29 @@ class ARModelViewer {
     setupCameraFeedFallback() {
         // Check if we can access camera
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            console.log('Camera API available, initializing camera feed...');
             // Try to initialize camera feed
             this.initializeCameraFeed();
         } else {
             console.log('Camera access not available, using fallback background');
             this.setupFallbackBackground();
         }
+        
+        // Also add a manual camera enable button after delay
+        setTimeout(() => {
+            if (!this.cameraFeedActive) {
+                console.log('Camera not active after 3 seconds, adding enable button...');
+                this.addCameraEnableButton();
+            }
+        }, 3000);
+        
+        // Try to initialize camera again after 5 seconds
+        setTimeout(() => {
+            if (!this.cameraFeedActive) {
+                console.log('Camera not active after 5 seconds, trying again...');
+                this.forceCameraInit();
+            }
+        }, 5000);
     }
     
     // Request camera permission with user interaction
@@ -375,15 +407,47 @@ class ARModelViewer {
         try {
             console.log('Force initializing camera...');
             
-            // Try to get camera access
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { ideal: 'environment' },
-                    width: { ideal: 1280, min: 640 },
-                    height: { ideal: 720, min: 480 }
-                },
-                audio: false
-            });
+            // Try to get camera access with multiple fallback options
+            let stream = null;
+            
+            // Try with back camera first
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1280, min: 640 },
+                        height: { ideal: 720, min: 480 }
+                    },
+                    audio: false
+                });
+                console.log('Back camera access granted');
+            } catch (backError) {
+                console.log('Back camera failed, trying front camera...');
+                // Try with front camera
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: { ideal: 'user' },
+                            width: { ideal: 1280, min: 640 },
+                            height: { ideal: 720, min: 480 }
+                        },
+                        audio: false
+                    });
+                    console.log('Front camera access granted');
+                } catch (frontError) {
+                    console.log('Front camera failed, trying any camera...');
+                    // Try with any available camera
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                    console.log('Any camera access granted');
+                }
+            }
+            
+            if (!stream) {
+                throw new Error('No camera stream available');
+            }
             
             console.log('Camera access granted via force init');
             this.cameraFeedActive = true;
@@ -415,11 +479,18 @@ class ARModelViewer {
                     existingVideo.remove();
                 }
                 
+                // Remove camera enable button if exists
+                const cameraButton = canvasContainer.querySelector('#camera-enable-button');
+                if (cameraButton) {
+                    cameraButton.remove();
+                }
+                
                 canvasContainer.appendChild(video);
                 
                 // Wait for video to load
                 video.addEventListener('loadedmetadata', () => {
                     console.log('Force camera feed loaded successfully');
+                    console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
                     this.updateTrackerStatus('Camera ready - Looking for markers...', '📷');
                     
                     // Force play the video
@@ -428,10 +499,26 @@ class ARModelViewer {
                     });
                 });
                 
+                video.addEventListener('canplay', () => {
+                    console.log('Force video can play');
+                    video.play().catch(e => {
+                        console.error('Force video play failed on canplay:', e);
+                    });
+                });
+                
                 video.addEventListener('error', (e) => {
                     console.error('Force camera feed error:', e);
                     this.setupFallbackBackground();
                 });
+                
+                // Force play after a short delay
+                setTimeout(() => {
+                    if (video.paused) {
+                        video.play().catch(e => {
+                            console.error('Delayed force video play failed:', e);
+                        });
+                    }
+                }, 1000);
             }
             
         } catch (error) {
@@ -562,16 +649,48 @@ class ARModelViewer {
         try {
             console.log('Requesting camera access...');
             
-            // Request camera access with more specific constraints
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: { ideal: 'environment' }, // Use back camera
-                    width: { ideal: 1280, min: 640 },
-                    height: { ideal: 720, min: 480 },
-                    frameRate: { ideal: 30, min: 15 }
-                },
-                audio: false
-            });
+            // Try to get camera access with multiple fallback options
+            let stream = null;
+            
+            // Try with back camera first
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1280, min: 640 },
+                        height: { ideal: 720, min: 480 },
+                        frameRate: { ideal: 30, min: 15 }
+                    },
+                    audio: false
+                });
+                console.log('Back camera access granted');
+            } catch (backError) {
+                console.log('Back camera failed, trying front camera...');
+                // Try with front camera
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: { ideal: 'user' },
+                            width: { ideal: 1280, min: 640 },
+                            height: { ideal: 720, min: 480 }
+                        },
+                        audio: false
+                    });
+                    console.log('Front camera access granted');
+                } catch (frontError) {
+                    console.log('Front camera failed, trying any camera...');
+                    // Try with any available camera
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                    console.log('Any camera access granted');
+                }
+            }
+            
+            if (!stream) {
+                throw new Error('No camera stream available');
+            }
             
             console.log('Camera access granted');
             this.cameraFeedActive = true;
@@ -602,6 +721,12 @@ class ARModelViewer {
                 const existingVideo = canvasContainer.querySelector('#camera-feed');
                 if (existingVideo) {
                     existingVideo.remove();
+                }
+                
+                // Remove camera enable button if exists
+                const cameraButton = canvasContainer.querySelector('#camera-enable-button');
+                if (cameraButton) {
+                    cameraButton.remove();
                 }
                 
                 canvasContainer.appendChild(video);
@@ -1072,10 +1197,18 @@ class ARModelViewer {
         // Show marker download option
         this.showMarkerDownload(markerData);
         
-        // If marker is already detected, load the model
-        if (this.markerDetected) {
-            this.loadMobileModel(markerData.model, markerData.audio);
-        }
+        // Load the model immediately when marker is selected
+        this.loadMobileModel(markerData.model, markerData.audio);
+        
+        // Update tracker status
+        this.updateTrackerStatus(`Model loaded: ${markerData.name}`, '✅');
+        
+        // Show AR features
+        this.showAxisLines();
+        this.showObjectOverlay();
+        
+        // Show marker info
+        this.showMarkerInfo(markerData);
     }
     
     // Show marker download option
@@ -1511,21 +1644,148 @@ class ARModelViewer {
     // Start marker detection
     startMarkerDetection() {
         console.log('Starting marker detection...');
-        this.updateTrackerStatus('Looking for markers...', '🔍');
+        this.updateTrackerStatus('Camera ready - Point at AR marker', '📷');
         
-        // Simulate marker detection after 2 seconds
-        setTimeout(() => {
-            this.simulateMarkerDetection();
-        }, 2000);
+        // Don't simulate automatic detection, wait for user to point at marker
+        // User can manually select marker from sidebar
+        this.showMarkerSelectionInfo();
     }
     
-    // Simulate marker detection
-    simulateMarkerDetection() {
-        // Simulate detecting Aztec marker first
+    // Show marker selection info
+    showMarkerSelectionInfo() {
+        // Create marker selection info
+        const markerInfo = document.createElement('div');
+        markerInfo.id = 'marker-selection-info';
+        markerInfo.style.cssText = `
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            text-align: center;
+        `;
+        
+        markerInfo.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 10px; color: #007AFF;">📱 AR Mode Ready</div>
+            <div style="color: #8e8e93; margin-bottom: 10px;">1. Download AR markers from sidebar</div>
+            <div style="color: #8e8e93; margin-bottom: 10px;">2. Print the markers</div>
+            <div style="color: #8e8e93; margin-bottom: 10px;">3. Point camera at marker</div>
+            <div style="color: #8e8e93; margin-bottom: 15px;">4. Select marker from sidebar to load model</div>
+            <button onclick="window.arApp.loadDefaultModel()" style="
+                background: #34C759;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            ">Load Default Model</button>
+        `;
+        
+        // Add to canvas container
+        const canvasContainer = document.getElementById('mobile-canvas-container');
+        if (canvasContainer) {
+            canvasContainer.appendChild(markerInfo);
+        }
+        
+        // Auto remove after 15 seconds
+        setTimeout(() => {
+            if (markerInfo && markerInfo.parentNode) {
+                markerInfo.remove();
+            }
+        }, 15000);
+    }
+    
+    // Load default model without marker
+    loadDefaultModel() {
+        console.log('Loading default model...');
+        
+        // Load Aztec model as default
         const aztecMarker = this.markerPatterns.get('aztec');
         if (aztecMarker) {
-            this.detectMarker(aztecMarker);
+            this.currentMarker = aztecMarker;
+            this.loadMobileModel(aztecMarker.model, aztecMarker.audio);
+            this.updateTrackerStatus('Default model loaded', '✅');
+            this.showAxisLines();
+            this.showObjectOverlay();
+            this.showMarkerInfo(aztecMarker);
         }
+        
+        // Remove marker selection info
+        const markerInfo = document.getElementById('marker-selection-info');
+        if (markerInfo) {
+            markerInfo.remove();
+        }
+        
+        // Remove quick access button
+        const quickButton = document.getElementById('quick-access-button');
+        if (quickButton) {
+            quickButton.remove();
+        }
+    }
+    
+    // Add quick access button for testing
+    addQuickAccessButton() {
+        // Remove existing button if any
+        const existingButton = document.getElementById('quick-access-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // Create quick access button
+        const button = document.createElement('button');
+        button.id = 'quick-access-button';
+        button.innerHTML = '🚀 Quick Test';
+        button.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #FF9500;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        // Add click event
+        button.addEventListener('click', () => {
+            this.loadDefaultModel();
+        });
+        
+        // Add hover effect
+        button.addEventListener('mouseenter', () => {
+            button.style.background = '#e6850e';
+            button.style.transform = 'scale(1.05)';
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.background = '#FF9500';
+            button.style.transform = 'scale(1)';
+        });
+        
+        // Add to document
+        document.body.appendChild(button);
+        
+        // Auto remove after 30 seconds
+        setTimeout(() => {
+            if (button && button.parentNode) {
+                button.remove();
+            }
+        }, 30000);
     }
     
     // Detect marker
@@ -2443,6 +2703,13 @@ function toggleARFeatures() {
     const app = window.arApp;
     if (app) {
         app.toggleARFeatures();
+    }
+}
+
+function loadDefaultModel() {
+    const app = window.arApp;
+    if (app) {
+        app.loadDefaultModel();
     }
 }
 
