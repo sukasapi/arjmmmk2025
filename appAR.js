@@ -27,6 +27,17 @@ class ARModelViewer {
         this.controlsVisible = false;
         this.trackerDetected = false;
         
+        // AR Performance Metrics
+        this.fps = 60;
+        this.fpsHistory = [];
+        this.lastTime = performance.now();
+        this.frameCount = 0;
+        
+        // AR Tracking Visualization
+        this.axisLinesVisible = false;
+        this.objectOverlayVisible = false;
+        
+        this.audioContextEnabled = false;
         this.init();
     }
 
@@ -36,7 +47,204 @@ class ARModelViewer {
         this.updateTime();
         this.updateUI();
         this.loadModelGallery();
+        this.enableAudioContext();
+        this.setupMobileDragControls();
         this.simulateTrackerDetection();
+    }
+    
+    // Enable audio context with user interaction
+    enableAudioContext() {
+        // Add click event listener to enable audio context
+        const enableAudio = () => {
+            if (!this.audioContextEnabled) {
+                // Create a silent audio context to enable audio
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                this.audioContextEnabled = true;
+                console.log('Audio context enabled');
+                
+                // Remove event listeners after first interaction
+                document.removeEventListener('click', enableAudio);
+                document.removeEventListener('touchstart', enableAudio);
+            }
+        };
+        
+        // Add event listeners for user interaction
+        document.addEventListener('click', enableAudio, { once: true });
+        document.addEventListener('touchstart', enableAudio, { once: true });
+    }
+    
+    // Setup mobile drag controls
+    setupMobileDragControls() {
+        const canvas = document.getElementById('mobile-canvas');
+        if (!canvas) return;
+        
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            canvas.style.cursor = 'grabbing';
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging || !this.model) return;
+            
+            const deltaX = e.clientX - lastMouseX;
+            const deltaY = e.clientY - lastMouseY;
+            
+            // Rotate model based on mouse movement
+            this.model.rotation.y += deltaX * 0.01;
+            this.model.rotation.x += deltaY * 0.01;
+            
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+        
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+            }
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDragging || !this.model || e.touches.length !== 1) return;
+            
+            const deltaX = e.touches[0].clientX - lastTouchX;
+            const deltaY = e.touches[0].clientY - lastTouchY;
+            
+            // Rotate model based on touch movement
+            this.model.rotation.y += deltaX * 0.01;
+            this.model.rotation.x += deltaY * 0.01;
+            
+            lastTouchX = e.touches[0].clientX;
+            lastTouchY = e.touches[0].clientY;
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isDragging = false;
+        });
+        
+        // Wheel/scroll events for zoom
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (!this.model) return;
+            
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            this.model.scale.multiplyScalar(delta);
+            
+            // Limit scale
+            const scale = this.model.scale.x;
+            if (scale < 0.1) this.model.scale.setScalar(0.1);
+            if (scale > 3) this.model.scale.setScalar(3);
+            
+            // Update scale slider
+            const scaleSlider = document.getElementById('mobile-scale-slider');
+            if (scaleSlider) {
+                scaleSlider.value = scale;
+            }
+        });
+        
+        // Set initial cursor
+        canvas.style.cursor = 'grab';
+        
+        // Double-tap to reset model
+        let lastTapTime = 0;
+        canvas.addEventListener('touchend', (e) => {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
+            
+            if (tapLength < 500 && tapLength > 0) {
+                // Double tap detected
+                if (this.model) {
+                    // Reset model position, rotation, and scale
+                    this.model.position.set(0, 0, 0);
+                    this.model.rotation.set(0, 0, 0);
+                    this.model.scale.setScalar(1);
+                    
+                    // Update sliders
+                    const scaleSlider = document.getElementById('mobile-scale-slider');
+                    const rotationXSlider = document.getElementById('mobile-rotation-x');
+                    const rotationYSlider = document.getElementById('mobile-rotation-y');
+                    
+                    if (scaleSlider) scaleSlider.value = 1;
+                    if (rotationXSlider) rotationXSlider.value = 0;
+                    if (rotationYSlider) rotationYSlider.value = 0;
+                    
+                    console.log('Model reset to default position');
+                }
+            }
+            lastTapTime = currentTime;
+        });
+        
+        // Pinch-to-zoom for mobile
+        let initialDistance = 0;
+        let initialScale = 1;
+        
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                // Calculate initial distance between two touches
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                initialScale = this.model ? this.model.scale.x : 1;
+            }
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && this.model) {
+                e.preventDefault();
+                
+                // Calculate current distance between two touches
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                
+                // Calculate scale factor
+                const scaleFactor = currentDistance / initialDistance;
+                const newScale = initialScale * scaleFactor;
+                
+                // Limit scale
+                const clampedScale = Math.max(0.1, Math.min(3, newScale));
+                this.model.scale.setScalar(clampedScale);
+                
+                // Update scale slider
+                const scaleSlider = document.getElementById('mobile-scale-slider');
+                if (scaleSlider) {
+                    scaleSlider.value = clampedScale;
+                }
+            }
+        });
     }
 
     // Update time display
@@ -153,15 +361,128 @@ class ARModelViewer {
 
     // Check WebXR support
     async checkWebXRSupport() {
-        if ('xr' in navigator) {
-            try {
-                this.isWebXRSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                console.log('WebXR AR support:', this.isWebXRSupported);
-            } catch (error) {
-                console.log('WebXR not supported:', error);
-                this.isWebXRSupported = false;
-            }
+        console.log('Checking WebXR support...');
+        
+        // Check if WebXR is available
+        if (!('xr' in navigator)) {
+            console.log('WebXR not available in this browser');
+            this.isWebXRSupported = false;
+            this.showWebXRNotSupported('WebXR not available in this browser');
+            return;
         }
+        
+        // Check if we're on HTTPS
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            console.log('WebXR requires HTTPS');
+            this.isWebXRSupported = false;
+            this.showWebXRNotSupported('WebXR requires HTTPS connection');
+            return;
+        }
+        
+        // Check AR session support
+        try {
+            this.isWebXRSupported = await navigator.xr.isSessionSupported('immersive-ar');
+            console.log('WebXR AR support:', this.isWebXRSupported);
+            
+            if (this.isWebXRSupported) {
+                this.showWebXRSupported();
+            } else {
+                this.showWebXRNotSupported('AR session not supported');
+            }
+        } catch (error) {
+            console.log('WebXR not supported:', error);
+            this.isWebXRSupported = false;
+            this.showWebXRNotSupported('Error checking WebXR support: ' + error.message);
+        }
+    }
+    
+    // Show WebXR supported message
+    showWebXRSupported() {
+        console.log('WebXR AR is supported and ready');
+        // You can add UI feedback here if needed
+    }
+    
+    // Show WebXR not supported message
+    showWebXRNotSupported(reason = 'WebXR AR not supported') {
+        console.log('WebXR AR not supported:', reason);
+        
+        // Show notification to user
+        this.showNotification(`WebXR AR not supported: ${reason}. Using fallback mode.`);
+        
+        // Enable fallback mode
+        this.enableFallbackMode();
+        
+        // You can add more detailed UI feedback here
+        this.showWebXRFallbackInfo(reason);
+    }
+    
+    // Show WebXR fallback information
+    showWebXRFallbackInfo(reason) {
+        // Create info modal
+        const modal = document.createElement('div');
+        modal.id = 'webxr-fallback-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: #1c1c1e;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            color: white;
+        `;
+        
+        content.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 20px;">📱</div>
+            <h2 style="margin-bottom: 15px; color: #007AFF;">WebXR AR Not Available</h2>
+            <p style="margin-bottom: 20px; color: #8e8e93; line-height: 1.5;">
+                ${reason}. The app will run in fallback mode with simulated AR experience.
+            </p>
+            <div style="background: #2c2c2e; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+                <h4 style="color: #007AFF; margin-bottom: 10px;">Requirements for WebXR AR:</h4>
+                <ul style="color: #8e8e93; font-size: 14px; line-height: 1.6;">
+                    <li>• HTTPS connection (not HTTP)</li>
+                    <li>• Compatible browser (Chrome, Edge, Firefox)</li>
+                    <li>• AR-capable device</li>
+                    <li>• WebXR API support</li>
+                </ul>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" style="
+                background: #007AFF;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 25px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            ">Continue with Fallback Mode</button>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // Auto remove after 10 seconds
+        setTimeout(() => {
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+        }, 10000);
     }
 
     // Load model gallery
@@ -256,12 +577,9 @@ class ARModelViewer {
         event.currentTarget.classList.add('selected');
         this.selectedModel = model;
         
-        // Load model if tracker is detected
+        // Load model if tracker is detected (no volume modal for AR mode)
         if (this.trackerDetected) {
-            // Show volume modal before loading model
-            this.showVolumeModal(() => {
-                this.loadMobileModel(model.file, model.audio);
-            });
+            this.loadMobileModel(model.file, model.audio);
         }
     }
 
@@ -331,6 +649,29 @@ class ARModelViewer {
         });
     }
     
+    // Toggle AR Features
+    toggleARFeatures() {
+        const toggle = document.getElementById('ar-features-toggle');
+        
+        if (this.axisLinesVisible && this.objectOverlayVisible) {
+            // Hide AR features
+            this.hideAxisLines();
+            this.hideObjectOverlay();
+            if (toggle) {
+                toggle.textContent = 'Show AR';
+                toggle.style.background = '#007AFF';
+            }
+        } else {
+            // Show AR features
+            this.showAxisLines();
+            this.showObjectOverlay();
+            if (toggle) {
+                toggle.textContent = 'Hide AR';
+                toggle.style.background = '#ff3b30';
+            }
+        }
+    }
+    
     // Simulate AR tracker detection
     simulateTrackerDetection() {
         // Simulate tracker detection after 3 seconds
@@ -338,17 +679,56 @@ class ARModelViewer {
             this.trackerDetected = true;
             this.updateTrackerStatus('Tracker detected!', '✅');
             
-            // Show volume modal before loading model
-            this.showVolumeModal(() => {
-                // Load default model if one is selected
-                if (this.selectedModel) {
-                    this.loadMobileModel(this.selectedModel.file, this.selectedModel.audio);
-                } else {
-                    // Load default model
-                    this.loadMobileModel('aztec.glb', 'aztec.mp3');
-                }
-            });
+            // Show AR features
+            this.showAxisLines();
+            this.showObjectOverlay();
+            
+            // Load default model if one is selected (no volume modal for AR mode)
+            if (this.selectedModel) {
+                this.loadMobileModel(this.selectedModel.file, this.selectedModel.audio);
+            } else {
+                // Load default model
+                this.loadMobileModel('aztec.glb', 'aztec.mp3');
+            }
         }, 3000);
+    }
+    
+    // Enhanced fallback mode for non-WebXR devices
+    enableFallbackMode() {
+        console.log('Enabling fallback mode for non-WebXR devices');
+        
+        // Update AR instructions to reflect fallback mode
+        this.updateARInstructionsForFallback();
+        
+        // Ensure all AR features work in fallback mode
+        this.ensureFallbackFeatures();
+    }
+    
+    // Update AR instructions for fallback mode
+    updateARInstructionsForFallback() {
+        const instructionText = document.querySelector('.instruction-text h3');
+        const instructionP = document.querySelector('.instruction-text p');
+        
+        if (instructionText) {
+            instructionText.textContent = 'AR Mode (Fallback)';
+        }
+        
+        if (instructionP) {
+            instructionP.textContent = 'Simulated AR experience - drag to rotate, pinch to zoom';
+        }
+    }
+    
+    // Ensure fallback features work properly
+    ensureFallbackFeatures() {
+        // Make sure drag controls are working
+        this.setupMobileDragControls();
+        
+        // Ensure AR features are visible
+        this.showAxisLines();
+        this.showObjectOverlay();
+        
+        // Update performance metrics
+        this.updatePerformanceMetrics();
     }
     
     // Update tracker status
@@ -358,6 +738,139 @@ class ARModelViewer {
         
         if (statusText) statusText.textContent = text;
         if (statusIndicator) statusIndicator.textContent = icon;
+    }
+    
+    // AR Performance Metrics
+    updatePerformanceMetrics() {
+        this.frameCount++;
+        const currentTime = performance.now();
+        const deltaTime = currentTime - this.lastTime;
+        
+        if (deltaTime >= 1000) { // Update every second
+            this.fps = Math.round((this.frameCount * 1000) / deltaTime);
+            this.fpsHistory.push(this.fps);
+            
+            // Keep only last 10 FPS readings
+            if (this.fpsHistory.length > 10) {
+                this.fpsHistory.shift();
+            }
+            
+            // Update FPS display
+            const minFps = Math.min(...this.fpsHistory);
+            const maxFps = Math.max(...this.fpsHistory);
+            const fpsDisplay = document.getElementById('fps-display');
+            const performanceFill = document.getElementById('performance-fill');
+            
+            if (fpsDisplay) {
+                fpsDisplay.textContent = `${this.fps} FPS (${minFps}-${maxFps})`;
+            }
+            
+            if (performanceFill) {
+                // Calculate performance percentage (60 FPS = 100%)
+                const performancePercent = Math.min((this.fps / 60) * 100, 100);
+                performanceFill.style.width = `${performancePercent}%`;
+            }
+            
+            this.frameCount = 0;
+            this.lastTime = currentTime;
+        }
+    }
+    
+    // AR Tracking Visualization
+    showAxisLines() {
+        const axisLines = document.getElementById('ar-axis-lines');
+        if (axisLines) {
+            axisLines.style.display = 'block';
+            this.axisLinesVisible = true;
+        }
+    }
+    
+    hideAxisLines() {
+        const axisLines = document.getElementById('ar-axis-lines');
+        if (axisLines) {
+            axisLines.style.display = 'none';
+            this.axisLinesVisible = false;
+        }
+    }
+    
+    updateAxisLines() {
+        if (!this.axisLinesVisible || !this.model) return;
+        
+        // Get model position and rotation
+        const modelPosition = this.model.position;
+        const modelRotation = this.model.rotation;
+        
+        // Calculate screen position (simplified)
+        const canvas = document.getElementById('mobile-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        // Center of canvas
+        const centerX = canvasRect.width / 2;
+        const centerY = canvasRect.height / 2;
+        
+        // Update axis lines position
+        const axisX = document.getElementById('axis-x');
+        const axisY = document.getElementById('axis-y');
+        const axisZ = document.getElementById('axis-z');
+        
+        if (axisX) {
+            axisX.style.left = `${centerX}px`;
+            axisX.style.top = `${centerY}px`;
+            axisX.style.transform = `rotate(${modelRotation.y * 180 / Math.PI}deg)`;
+        }
+        
+        if (axisY) {
+            axisY.style.left = `${centerX}px`;
+            axisY.style.top = `${centerY}px`;
+            axisY.style.transform = `rotate(${90 + modelRotation.x * 180 / Math.PI}deg)`;
+        }
+        
+        if (axisZ) {
+            axisZ.style.left = `${centerX}px`;
+            axisZ.style.top = `${centerY}px`;
+            axisZ.style.transform = `rotate(${45 + modelRotation.z * 180 / Math.PI}deg)`;
+        }
+    }
+    
+    // AR Object Overlay
+    showObjectOverlay() {
+        const overlay = document.getElementById('ar-object-overlay');
+        if (overlay) {
+            overlay.style.display = 'block';
+            this.objectOverlayVisible = true;
+        }
+    }
+    
+    hideObjectOverlay() {
+        const overlay = document.getElementById('ar-object-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+            this.objectOverlayVisible = false;
+        }
+    }
+    
+    updateObjectOverlay() {
+        if (!this.objectOverlayVisible || !this.model) return;
+        
+        // Get model bounding box
+        const box = new THREE.Box3().setFromObject(this.model);
+        const size = box.getSize(new THREE.Vector3());
+        
+        // Calculate overlay position and size
+        const canvas = document.getElementById('mobile-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        const centerX = canvasRect.width / 2;
+        const centerY = canvasRect.height / 2;
+        
+        const overlay = document.getElementById('ar-object-overlay');
+        if (overlay) {
+            const scale = Math.max(size.x, size.y, size.z) * 100;
+            overlay.style.left = `${centerX - scale/2}px`;
+            overlay.style.top = `${centerY - scale/2}px`;
+            overlay.style.width = `${scale}px`;
+            overlay.style.height = `${scale}px`;
+        }
     }
 
     // Load mobile model from Assets folder
@@ -393,8 +906,9 @@ class ARModelViewer {
             
             console.log('Mobile model loaded successfully');
             
-            // Hide volume modal after model is loaded
-            this.hideVolumeModal();
+            // Update AR features after model is loaded
+            this.updateAxisLines();
+            this.updateObjectOverlay();
             
             // Load and play audio after model is loaded
             // Small delay to ensure model is fully rendered
@@ -503,7 +1017,8 @@ class ARModelViewer {
     // Enter AR Mode
     async enterARMode() {
         if (!this.isWebXRSupported) {
-            this.showNotification('WebXR tidak didukung di browser ini!');
+            this.showNotification('WebXR tidak didukung di browser ini! Using fallback mode.');
+            this.enableFallbackMode();
             return;
         }
 
@@ -533,7 +1048,8 @@ class ARModelViewer {
             
         } catch (error) {
             console.error('Failed to enter AR mode:', error);
-            this.showNotification('Gagal masuk mode AR: ' + error.message);
+            this.showNotification('Gagal masuk mode AR: ' + error.message + '. Using fallback mode.');
+            this.enableFallbackMode();
         }
     }
 
@@ -621,12 +1137,22 @@ class ARModelViewer {
     animate() {
         requestAnimationFrame(() => this.animate());
         
+        // Update performance metrics
+        this.updatePerformanceMetrics();
+        
         // Render mobile scene
         if (this.renderer && this.scene && this.camera) {
             // Rotate model in mobile mode
             if (this.model && this.currentStep === 2 && !this.isARMode) {
                 this.model.rotation.y += 0.005;
             }
+            
+            // Update AR features
+            if (this.trackerDetected && this.model) {
+                this.updateAxisLines();
+                this.updateObjectOverlay();
+            }
+            
             this.renderer.render(this.scene, this.camera);
         }
     }
@@ -687,6 +1213,13 @@ class ARModelViewer {
             return;
         }
         
+        // Check if audio context is enabled
+        if (!this.audioContextEnabled) {
+            console.log('Audio context not enabled, showing play button');
+            this.showAudioPlayButton();
+            return;
+        }
+        
         this.currentAudio.play().then(() => {
             this.isAudioPlaying = true;
             const modelName = this.availableModels.find(m => m.file === this.currentAudio?.src.split('/').pop()?.replace('.mp3', '.glb'))?.name;
@@ -696,8 +1229,82 @@ class ARModelViewer {
             // Audio might not play due to browser autoplay policy
             if (error.name === 'NotAllowedError') {
                 console.log('Mobile audio autoplay blocked by browser policy');
+                this.showAudioPlayButton();
             }
         });
+    }
+    
+    // Show audio play button when autoplay is blocked
+    showAudioPlayButton() {
+        // Remove existing audio button if any
+        const existingButton = document.getElementById('audio-play-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // Create audio play button
+        const audioButton = document.createElement('button');
+        audioButton.id = 'audio-play-button';
+        audioButton.innerHTML = '🔊 Play Audio';
+        audioButton.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        // Add click event to play audio
+        audioButton.addEventListener('click', () => {
+            if (this.currentAudio) {
+                // Enable audio context first
+                this.enableAudioContext();
+                
+                this.currentAudio.play().then(() => {
+                    console.log('Mobile audio started after user interaction');
+                    audioButton.remove();
+                }).catch(error => {
+                    console.error('Error playing mobile audio after interaction:', error);
+                    // Show error message
+                    audioButton.innerHTML = '❌ Audio Error';
+                    audioButton.style.background = '#ff3b30';
+                    setTimeout(() => {
+                        audioButton.remove();
+                    }, 3000);
+                });
+            }
+        });
+        
+        // Add hover effect
+        audioButton.addEventListener('mouseenter', () => {
+            audioButton.style.background = '#0056b3';
+            audioButton.style.transform = 'translateX(-50%) scale(1.05)';
+        });
+        
+        audioButton.addEventListener('mouseleave', () => {
+            audioButton.style.background = '#007AFF';
+            audioButton.style.transform = 'translateX(-50%) scale(1)';
+        });
+        
+        // Add to document
+        document.body.appendChild(audioButton);
+        
+        // Auto remove after 10 seconds
+        setTimeout(() => {
+            if (audioButton && audioButton.parentNode) {
+                audioButton.remove();
+            }
+        }, 10000);
     }
     
     stopMobileAudio() {
@@ -708,73 +1315,6 @@ class ARModelViewer {
         this.isAudioPlaying = false;
     }
 
-    // Volume modal methods
-    showVolumeModal(callback) {
-        const modal = document.getElementById('volume-modal');
-        if (!modal) return;
-        
-        // Store callback for when modal is closed
-        this.volumeModalCallback = callback;
-        
-        // Show modal
-        modal.classList.add('show');
-        
-        // Prevent body scroll
-        document.body.style.overflow = 'hidden';
-    }
-    
-    closeVolumeModal() {
-        const modal = document.getElementById('volume-modal');
-        const loading = document.getElementById('volume-modal-loading');
-        const btn = modal.querySelector('.volume-modal-btn');
-        const message = modal.querySelector('.volume-modal-message');
-        
-        if (!modal) return;
-        
-        // Show loading state
-        if (loading) {
-            loading.style.display = 'block';
-        }
-        if (btn) {
-            btn.style.display = 'none';
-        }
-        if (message) {
-            message.textContent = 'Model sedang dimuat, harap tunggu...';
-        }
-        
-        // Execute callback if exists
-        if (this.volumeModalCallback) {
-            this.volumeModalCallback();
-            this.volumeModalCallback = null;
-        }
-    }
-    
-    // Hide volume modal after model is loaded
-    hideVolumeModal() {
-        const modal = document.getElementById('volume-modal');
-        if (!modal) return;
-        
-        // Hide modal
-        modal.classList.remove('show');
-        
-        // Restore body scroll
-        document.body.style.overflow = '';
-        
-        // Reset modal state
-        const loading = document.getElementById('volume-modal-loading');
-        const btn = modal.querySelector('.volume-modal-btn');
-        const message = modal.querySelector('.volume-modal-message');
-        
-        if (loading) {
-            loading.style.display = 'none';
-        }
-        if (btn) {
-            btn.style.display = 'block';
-        }
-        if (message) {
-            message.textContent = 'Pastikan volume device Anda sudah dihidupkan untuk mendengarkan penjelasan audio yang tersedia untuk setiap model 3D.';
-        }
-    }
 
 
     // Cleanup
@@ -799,19 +1339,17 @@ function resetApp() {
 function startCapture() {
     const app = window.arApp;
     if (app) {
-        // Show volume modal before starting capture
-        app.showVolumeModal(() => {
-            app.showLoading(true, 'mobile');
-            app.showNotification('Starting object capture...');
-            
-            // Load default model and simulate capture process
-            app.loadMobileModel();
-            
-            setTimeout(() => {
-                app.showLoading(false, 'mobile');
-                app.nextStep();
-            }, 2000);
-        });
+        // Start capture directly (no volume modal for AR mode)
+        app.showLoading(true, 'mobile');
+        app.showNotification('Starting object capture...');
+        
+        // Load default model and simulate capture process
+        app.loadMobileModel();
+        
+        setTimeout(() => {
+            app.showLoading(false, 'mobile');
+            app.nextStep();
+        }, 2000);
     }
 }
 
@@ -843,12 +1381,6 @@ function placeModel() {
     }
 }
 
-function closeVolumeModal() {
-    const app = window.arApp;
-    if (app) {
-        app.closeVolumeModal();
-    }
-}
 
 // Mobile interface functions
 function toggleMobileSidebar() {
@@ -883,6 +1415,13 @@ function updateMobileLighting(value) {
     const app = window.arApp;
     if (app) {
         app.updateMobileLighting(value);
+    }
+}
+
+function toggleARFeatures() {
+    const app = window.arApp;
+    if (app) {
+        app.toggleARFeatures();
     }
 }
 
