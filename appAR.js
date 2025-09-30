@@ -1209,6 +1209,15 @@ class ARModelViewer {
         
         // Show marker info
         this.showMarkerInfo(markerData);
+        
+        // Hide camera permission modal if it exists
+        this.hideCameraPermissionModal();
+        
+        // Remove marker detection feedback
+        const feedback = document.getElementById('marker-detection-feedback');
+        if (feedback) {
+            feedback.remove();
+        }
     }
     
     // Show marker download option
@@ -1649,6 +1658,101 @@ class ARModelViewer {
         // Don't simulate automatic detection, wait for user to point at marker
         // User can manually select marker from sidebar
         this.showMarkerSelectionInfo();
+        
+        // Add marker detection simulation for testing
+        this.simulateMarkerDetectionForTesting();
+    }
+    
+    // Simulate marker detection for testing
+    simulateMarkerDetectionForTesting() {
+        // After 5 seconds, if no marker is selected, show option to load default
+        setTimeout(() => {
+            if (!this.currentMarker) {
+                this.showMarkerDetectionHelp();
+            }
+        }, 5000);
+        
+        // Also show marker detection feedback immediately
+        this.addMarkerDetectionFeedback();
+    }
+    
+    // Show marker detection help
+    showMarkerDetectionHelp() {
+        // Remove existing help if any
+        const existingHelp = document.getElementById('marker-detection-help');
+        if (existingHelp) {
+            existingHelp.remove();
+        }
+        
+        // Create marker detection help
+        const help = document.createElement('div');
+        help.id = 'marker-detection-help';
+        help.style.cssText = `
+            position: absolute;
+            top: 200px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            text-align: center;
+        `;
+        
+        help.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 15px; color: #FF9500;">🎯 Marker Detection Help</div>
+            <div style="color: #8e8e93; margin-bottom: 15px; line-height: 1.5;">
+                If you can see the marker but model doesn't appear:
+            </div>
+            <div style="color: #8e8e93; margin-bottom: 15px; text-align: left;">
+                <div style="margin-bottom: 8px;">1. Open sidebar (☰) and select marker</div>
+                <div style="margin-bottom: 8px;">2. Or click "Load Default Model" below</div>
+                <div style="margin-bottom: 8px;">3. Or click "🚀 Quick Test" button</div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="window.arApp.loadDefaultModel()" style="
+                    background: #34C759;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Load Default Model</button>
+                <button onclick="this.parentElement.remove()" style="
+                    background: #8e8e93;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Close</button>
+            </div>
+        `;
+        
+        // Add to canvas container
+        const canvasContainer = document.getElementById('mobile-canvas-container');
+        if (canvasContainer) {
+            canvasContainer.appendChild(help);
+        }
+        
+        // Auto remove after 20 seconds
+        setTimeout(() => {
+            if (help && help.parentNode) {
+                help.remove();
+            }
+        }, 20000);
+        
+        // Also show marker detection feedback
+        this.addMarkerDetectionFeedback();
     }
     
     // Show marker selection info
@@ -1702,6 +1806,9 @@ class ARModelViewer {
                 markerInfo.remove();
             }
         }, 15000);
+        
+        // Also show marker detection feedback
+        this.addMarkerDetectionFeedback();
     }
     
     // Load default model without marker
@@ -1729,6 +1836,23 @@ class ARModelViewer {
         const quickButton = document.getElementById('quick-access-button');
         if (quickButton) {
             quickButton.remove();
+        }
+        
+        // Remove marker detection feedback
+        const feedback = document.getElementById('marker-detection-feedback');
+        if (feedback) {
+            feedback.remove();
+        }
+        
+        // Hide camera permission modal if it exists
+        this.hideCameraPermissionModal();
+    }
+    
+    // Hide camera permission modal
+    hideCameraPermissionModal() {
+        const modal = document.getElementById('camera-permission-modal');
+        if (modal) {
+            modal.remove();
         }
     }
     
@@ -1788,6 +1912,84 @@ class ARModelViewer {
         }, 30000);
     }
     
+    // Add marker detection visual feedback
+    addMarkerDetectionFeedback() {
+        // Remove existing feedback if any
+        const existingFeedback = document.getElementById('marker-detection-feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+        
+        // Create marker detection feedback
+        const feedback = document.createElement('div');
+        feedback.id = 'marker-detection-feedback';
+        feedback.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            text-align: center;
+            border: 2px solid #FF9500;
+            max-width: 300px;
+        `;
+        
+        feedback.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 15px; color: #FF9500;">🎯 Marker Detection</div>
+            <div style="color: #8e8e93; margin-bottom: 15px; line-height: 1.5;">
+                Point your camera at the AR marker. If you can see the marker but model doesn't appear:
+            </div>
+            <div style="color: #8e8e93; margin-bottom: 15px; text-align: left;">
+                <div style="margin-bottom: 8px;">1. Open sidebar (☰) and select marker</div>
+                <div style="margin-bottom: 8px;">2. Or click "Load Default Model" below</div>
+                <div style="margin-bottom: 8px;">3. Or click "🚀 Quick Test" button</div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="window.arApp.loadDefaultModel()" style="
+                    background: #34C759;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Load Default Model</button>
+                <button onclick="this.parentElement.parentElement.remove()" style="
+                    background: #8e8e93;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Close</button>
+            </div>
+        `;
+        
+        // Add to canvas container
+        const canvasContainer = document.getElementById('mobile-canvas-container');
+        if (canvasContainer) {
+            canvasContainer.appendChild(feedback);
+        }
+        
+        // Auto remove after 15 seconds
+        setTimeout(() => {
+            if (feedback && feedback.parentNode) {
+                feedback.remove();
+            }
+        }, 15000);
+    }
+    
     // Detect marker
     detectMarker(markerData) {
         console.log('Marker detected:', markerData.name);
@@ -1806,6 +2008,147 @@ class ARModelViewer {
         
         // Show marker info
         this.showMarkerInfo(markerData);
+        
+        // Hide camera permission modal if it exists
+        this.hideCameraPermissionModal();
+        
+        // Show success notification
+        this.showMarkerDetectionSuccess(markerData);
+        
+        // Remove marker detection feedback
+        const feedback = document.getElementById('marker-detection-feedback');
+        if (feedback) {
+            feedback.remove();
+        }
+    }
+    
+    // Show marker detection success
+    showMarkerDetectionSuccess(markerData) {
+        // Remove existing success notification if any
+        const existingSuccess = document.getElementById('marker-detection-success');
+        if (existingSuccess) {
+            existingSuccess.remove();
+        }
+        
+        // Create success notification
+        const success = document.createElement('div');
+        success.id = 'marker-detection-success';
+        success.style.cssText = `
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            right: 20px;
+            background: rgba(52, 199, 89, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            text-align: center;
+            animation: slideInDown 0.5s ease;
+        `;
+        
+        success.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 5px;">🎉 Marker Detected!</div>
+            <div style="font-size: 12px; opacity: 0.9;">${markerData.name} model loaded successfully</div>
+        `;
+        
+        // Add to canvas container
+        const canvasContainer = document.getElementById('mobile-canvas-container');
+        if (canvasContainer) {
+            canvasContainer.appendChild(success);
+        }
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (success && success.parentNode) {
+                success.style.animation = 'slideOutUp 0.5s ease';
+                setTimeout(() => {
+                    if (success && success.parentNode) {
+                        success.remove();
+                    }
+                }, 500);
+            }
+        }, 3000);
+    }
+    
+    // Add marker detection visual feedback
+    addMarkerDetectionFeedback() {
+        // Remove existing feedback if any
+        const existingFeedback = document.getElementById('marker-detection-feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+        
+        // Create marker detection feedback
+        const feedback = document.createElement('div');
+        feedback.id = 'marker-detection-feedback';
+        feedback.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            text-align: center;
+            border: 2px solid #FF9500;
+            max-width: 300px;
+        `;
+        
+        feedback.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 15px; color: #FF9500;">🎯 Marker Detection</div>
+            <div style="color: #8e8e93; margin-bottom: 15px; line-height: 1.5;">
+                Point your camera at the AR marker. If you can see the marker but model doesn't appear:
+            </div>
+            <div style="color: #8e8e93; margin-bottom: 15px; text-align: left;">
+                <div style="margin-bottom: 8px;">1. Open sidebar (☰) and select marker</div>
+                <div style="margin-bottom: 8px;">2. Or click "Load Default Model" below</div>
+                <div style="margin-bottom: 8px;">3. Or click "🚀 Quick Test" button</div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="window.arApp.loadDefaultModel()" style="
+                    background: #34C759;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Load Default Model</button>
+                <button onclick="this.parentElement.parentElement.remove()" style="
+                    background: #8e8e93;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Close</button>
+            </div>
+        `;
+        
+        // Add to canvas container
+        const canvasContainer = document.getElementById('mobile-canvas-container');
+        if (canvasContainer) {
+            canvasContainer.appendChild(feedback);
+        }
+        
+        // Auto remove after 15 seconds
+        setTimeout(() => {
+            if (feedback && feedback.parentNode) {
+                feedback.remove();
+            }
+        }, 15000);
     }
     
     // Show marker info
