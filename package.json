@@ -1,27 +1,44 @@
 {
   "name": "ar-model-viewer",
   "version": "1.0.0",
-  "description": "Aplikasi AR untuk menampilkan model 3D dengan format GLB",
+  "description": "AR Model Viewer with 3D models and audio support",
   "main": "index.html",
   "scripts": {
-    "start": "npx http-server -p 8080 -c-1",
-    "dev": "npx live-server --port=8080 --open=/index.html"
+    "start": "python -m http.server 8000",
+    "serve": "python3 -m http.server 8000",
+    "dev": "live-server --port=8000 --open=/index.html"
   },
   "keywords": [
     "ar",
+    "augmented-reality",
+    "3d-models",
     "webxr",
     "threejs",
-    "3d",
     "glb",
-    "model-viewer"
+    "audio"
   ],
-  "author": "AR Model Viewer",
+  "author": "Your Name",
   "license": "MIT",
-  "devDependencies": {
-    "http-server": "^14.1.1",
-    "live-server": "^1.2.0"
+  "dependencies": {
+    "three": "^0.128.0"
   },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ar-model-viewer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ar-model-viewer/issues"
+  },
+  "homepage": "https://github.com/yourusername/ar-model-viewer#readme",
   "engines": {
     "node": ">=14.0.0"
-  }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
 }

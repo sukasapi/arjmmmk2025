@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Allow access to 3D models and assets
+Allow: /Assets/
+Allow: /Vo/
+
+# Disallow access to sensitive files
+Disallow: /.htaccess
+Disallow: /app.js
+Disallow: /appAR.js
+
+# Sitemap location
+Sitemap: https://yourdomain.com/sitemap.xml

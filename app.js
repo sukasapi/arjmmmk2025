@@ -692,7 +692,11 @@ class ARModelViewer {
         if (!model) return;
         
         this.selectedModel = model;
-        this.loadDesktopModel(model.file, model.audio);
+        
+        // Show volume modal before loading model
+        this.showVolumeModal(() => {
+            this.loadDesktopModel(model.file, model.audio);
+        });
     }
 
     // Audio system methods
@@ -763,6 +767,74 @@ class ARModelViewer {
         this.isAudioPlaying = false;
     }
 
+    // Volume modal methods
+    showVolumeModal(callback) {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Store callback for when modal is closed
+        this.volumeModalCallback = callback;
+        
+        // Show modal
+        modal.classList.add('show');
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+    }
+    
+    closeVolumeModal() {
+        const modal = document.getElementById('volume-modal');
+        const loading = document.getElementById('volume-modal-loading');
+        const btn = modal.querySelector('.volume-modal-btn');
+        const message = modal.querySelector('.volume-modal-message');
+        
+        if (!modal) return;
+        
+        // Show loading state
+        if (loading) {
+            loading.style.display = 'block';
+        }
+        if (btn) {
+            btn.style.display = 'none';
+        }
+        if (message) {
+            message.textContent = 'Model sedang dimuat, harap tunggu...';
+        }
+        
+        // Execute callback if exists
+        if (this.volumeModalCallback) {
+            this.volumeModalCallback();
+            this.volumeModalCallback = null;
+        }
+    }
+    
+    // Hide volume modal after model is loaded
+    hideVolumeModal() {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Hide modal
+        modal.classList.remove('show');
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        // Reset modal state
+        const loading = document.getElementById('volume-modal-loading');
+        const btn = modal.querySelector('.volume-modal-btn');
+        const message = modal.querySelector('.volume-modal-message');
+        
+        if (loading) {
+            loading.style.display = 'none';
+        }
+        if (btn) {
+            btn.style.display = 'block';
+        }
+        if (message) {
+            message.textContent = 'Pastikan volume device Anda sudah dihidupkan untuk mendengarkan penjelasan audio yang tersedia untuk setiap model 3D.';
+        }
+    }
+
 
     // Load desktop model from Assets folder
     loadDesktopModel(modelFile = 'aztec.glb', audioFile = null) {
@@ -804,6 +876,9 @@ class ARModelViewer {
             this.showNotification('Model loaded successfully!');
             
             console.log('Desktop model loaded successfully');
+            
+            // Hide volume modal after model is loaded
+            this.hideVolumeModal();
             
             // Load and play audio after model is loaded
             if (audioFile) {
@@ -1050,7 +1125,10 @@ function viewInAR() {
 function loadDesktopModel() {
     const app = window.arApp;
     if (app) {
-        app.loadDesktopModel();
+        // Show volume modal before loading model
+        app.showVolumeModal(() => {
+            app.loadDesktopModel();
+        });
     }
 }
 
@@ -1162,6 +1240,13 @@ function loadSelectedModel(modelId) {
     const app = window.arApp;
     if (app) {
         app.loadSelectedModel(modelId);
+    }
+}
+
+function closeVolumeModal() {
+    const app = window.arApp;
+    if (app) {
+        app.closeVolumeModal();
     }
 }
 

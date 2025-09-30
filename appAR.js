@@ -22,6 +22,11 @@ class ARModelViewer {
         this.arModel = null;
         this.isModelPlaced = false;
         
+        // Desktop-like interface variables
+        this.sidebarVisible = false;
+        this.controlsVisible = false;
+        this.trackerDetected = false;
+        
         this.init();
     }
 
@@ -31,6 +36,7 @@ class ARModelViewer {
         this.updateTime();
         this.updateUI();
         this.loadModelGallery();
+        this.simulateTrackerDetection();
     }
 
     // Update time display
@@ -74,7 +80,7 @@ class ARModelViewer {
 
     // Initialize mobile canvas
     initializeMobileCanvas() {
-        const mobileCanvas = document.getElementById('ar-canvas');
+        const mobileCanvas = document.getElementById('mobile-canvas');
         if (!mobileCanvas) return;
         
         // Scene
@@ -108,6 +114,7 @@ class ARModelViewer {
         
         // Ambient light - increased intensity for better overall lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        ambientLight.userData.originalIntensity = 1.0;
         this.scene.add(ambientLight);
         
         // Main directional light - increased intensity and better positioning
@@ -122,21 +129,25 @@ class ARModelViewer {
         directionalLight.shadow.camera.right = 10;
         directionalLight.shadow.camera.top = 10;
         directionalLight.shadow.camera.bottom = -10;
+        directionalLight.userData.originalIntensity = 1.5;
         this.scene.add(directionalLight);
         
         // Secondary directional light from opposite side
         const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight2.position.set(-5, 5, -5);
+        directionalLight2.userData.originalIntensity = 0.8;
         this.scene.add(directionalLight2);
         
         // Point light for additional illumination
         const pointLight = new THREE.PointLight(0xffffff, 1.2);
         pointLight.position.set(0, 5, 0);
         pointLight.distance = 20;
+        pointLight.userData.originalIntensity = 1.2;
         this.scene.add(pointLight);
         
         // Hemisphere light for more natural lighting
         const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x362d1d, 0.6);
+        hemisphereLight.userData.originalIntensity = 0.6;
         this.scene.add(hemisphereLight);
     }
 
@@ -184,10 +195,173 @@ class ARModelViewer {
                 }
             ];
         }
+        
+        // Populate mobile model gallery UI
+        this.populateMobileGallery();
+    }
+    
+    // Populate mobile model gallery UI
+    populateMobileGallery() {
+        const galleryContainer = document.getElementById('mobile-model-gallery');
+        if (!galleryContainer) return;
+        
+        galleryContainer.innerHTML = '';
+        
+        this.availableModels.forEach(model => {
+            const modelElement = this.createMobileModelElement(model);
+            galleryContainer.appendChild(modelElement);
+        });
+        
+        console.log('Mobile model gallery populated');
+    }
+    
+    // Create model element for mobile gallery
+    createMobileModelElement(model) {
+        const modelDiv = document.createElement('div');
+        modelDiv.className = 'model-item';
+        modelDiv.onclick = () => this.selectMobileModel(model.id);
+        
+        const thumbnail = this.createMobileThumbnailElement(model);
+        
+        modelDiv.innerHTML = `
+            <div class="model-thumbnail">
+                ${thumbnail}
+            </div>
+            <div class="model-info">
+                <h4>${model.name}</h4>
+                <p>${model.description}</p>
+            </div>
+        `;
+        
+        return modelDiv;
+    }
+    
+    // Create thumbnail element with fallback for mobile
+    createMobileThumbnailElement(model) {
+        const thumbnailFile = model.thumbnail || 'default.png';
+        return `<img src="Assets/thumbnail/${thumbnailFile}" alt="${model.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-size:24px;">${model.icon}</div>`;
+    }
+    
+    // Select mobile model
+    selectMobileModel(modelId) {
+        const model = this.availableModels.find(m => m.id === modelId);
+        if (!model) return;
+        
+        // Remove previous selection
+        document.querySelectorAll('.model-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Add selection to clicked item
+        event.currentTarget.classList.add('selected');
+        this.selectedModel = model;
+        
+        // Load model if tracker is detected
+        if (this.trackerDetected) {
+            // Show volume modal before loading model
+            this.showVolumeModal(() => {
+                this.loadMobileModel(model.file, model.audio);
+            });
+        }
+    }
+
+    // Toggle mobile sidebar
+    toggleMobileSidebar() {
+        const sidebar = document.getElementById('mobile-sidebar');
+        const main = document.getElementById('mobile-main');
+        const hamburger = document.getElementById('mobile-hamburger-menu');
+        
+        if (!sidebar || !main || !hamburger) return;
+        
+        this.sidebarVisible = !this.sidebarVisible;
+        
+        if (this.sidebarVisible) {
+            sidebar.classList.add('show');
+            main.classList.add('sidebar-open');
+            hamburger.classList.add('active');
+        } else {
+            sidebar.classList.remove('show');
+            main.classList.remove('sidebar-open');
+            hamburger.classList.remove('active');
+        }
+    }
+    
+    // Toggle mobile object controls
+    toggleMobileControls() {
+        const controls = document.getElementById('mobile-object-controls');
+        if (!controls) return;
+        
+        this.controlsVisible = !this.controlsVisible;
+        
+        if (this.controlsVisible) {
+            controls.classList.add('show');
+        } else {
+            controls.classList.remove('show');
+        }
+    }
+    
+    // Update mobile scale
+    updateMobileScale(value) {
+        if (this.model) {
+            this.model.scale.setScalar(parseFloat(value));
+        }
+    }
+    
+    // Update mobile rotation
+    updateMobileRotation(axis, value) {
+        if (this.model) {
+            const radians = (parseFloat(value) * Math.PI) / 180;
+            if (axis === 'x') {
+                this.model.rotation.x = radians;
+            } else if (axis === 'y') {
+                this.model.rotation.y = radians;
+            }
+        }
+    }
+    
+    // Update mobile lighting
+    updateMobileLighting(value) {
+        const intensity = parseFloat(value);
+        
+        // Update all lights in the scene
+        this.scene.children.forEach(child => {
+            if (child.isLight) {
+                child.intensity = child.userData.originalIntensity * intensity;
+            }
+        });
+    }
+    
+    // Simulate AR tracker detection
+    simulateTrackerDetection() {
+        // Simulate tracker detection after 3 seconds
+        setTimeout(() => {
+            this.trackerDetected = true;
+            this.updateTrackerStatus('Tracker detected!', '✅');
+            
+            // Show volume modal before loading model
+            this.showVolumeModal(() => {
+                // Load default model if one is selected
+                if (this.selectedModel) {
+                    this.loadMobileModel(this.selectedModel.file, this.selectedModel.audio);
+                } else {
+                    // Load default model
+                    this.loadMobileModel('aztec.glb', 'aztec.mp3');
+                }
+            });
+        }, 3000);
+    }
+    
+    // Update tracker status
+    updateTrackerStatus(text, icon) {
+        const statusText = document.querySelector('.status-text');
+        const statusIndicator = document.querySelector('.status-indicator');
+        
+        if (statusText) statusText.textContent = text;
+        if (statusIndicator) statusIndicator.textContent = icon;
     }
 
     // Load mobile model from Assets folder
-    loadMobileModel(modelFile = 'aztec.glb') {
+    loadMobileModel(modelFile = 'aztec.glb', audioFile = null) {
         const loader = new THREE.GLTFLoader();
         
         loader.load(`./Assets/${modelFile}`, (gltf) => {
@@ -218,6 +392,9 @@ class ARModelViewer {
             this.fitModelToView();
             
             console.log('Mobile model loaded successfully');
+            
+            // Hide volume modal after model is loaded
+            this.hideVolumeModal();
             
             // Load and play audio after model is loaded
             // Small delay to ensure model is fully rendered
@@ -531,6 +708,74 @@ class ARModelViewer {
         this.isAudioPlaying = false;
     }
 
+    // Volume modal methods
+    showVolumeModal(callback) {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Store callback for when modal is closed
+        this.volumeModalCallback = callback;
+        
+        // Show modal
+        modal.classList.add('show');
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+    }
+    
+    closeVolumeModal() {
+        const modal = document.getElementById('volume-modal');
+        const loading = document.getElementById('volume-modal-loading');
+        const btn = modal.querySelector('.volume-modal-btn');
+        const message = modal.querySelector('.volume-modal-message');
+        
+        if (!modal) return;
+        
+        // Show loading state
+        if (loading) {
+            loading.style.display = 'block';
+        }
+        if (btn) {
+            btn.style.display = 'none';
+        }
+        if (message) {
+            message.textContent = 'Model sedang dimuat, harap tunggu...';
+        }
+        
+        // Execute callback if exists
+        if (this.volumeModalCallback) {
+            this.volumeModalCallback();
+            this.volumeModalCallback = null;
+        }
+    }
+    
+    // Hide volume modal after model is loaded
+    hideVolumeModal() {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Hide modal
+        modal.classList.remove('show');
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        // Reset modal state
+        const loading = document.getElementById('volume-modal-loading');
+        const btn = modal.querySelector('.volume-modal-btn');
+        const message = modal.querySelector('.volume-modal-message');
+        
+        if (loading) {
+            loading.style.display = 'none';
+        }
+        if (btn) {
+            btn.style.display = 'block';
+        }
+        if (message) {
+            message.textContent = 'Pastikan volume device Anda sudah dihidupkan untuk mendengarkan penjelasan audio yang tersedia untuk setiap model 3D.';
+        }
+    }
+
 
     // Cleanup
     cleanup() {
@@ -554,16 +799,19 @@ function resetApp() {
 function startCapture() {
     const app = window.arApp;
     if (app) {
-        app.showLoading(true, 'mobile');
-        app.showNotification('Starting object capture...');
-        
-        // Load default model and simulate capture process
-        app.loadMobileModel();
-        
-        setTimeout(() => {
-            app.showLoading(false, 'mobile');
-            app.nextStep();
-        }, 2000);
+        // Show volume modal before starting capture
+        app.showVolumeModal(() => {
+            app.showLoading(true, 'mobile');
+            app.showNotification('Starting object capture...');
+            
+            // Load default model and simulate capture process
+            app.loadMobileModel();
+            
+            setTimeout(() => {
+                app.showLoading(false, 'mobile');
+                app.nextStep();
+            }, 2000);
+        });
     }
 }
 
@@ -595,6 +843,48 @@ function placeModel() {
     }
 }
 
+function closeVolumeModal() {
+    const app = window.arApp;
+    if (app) {
+        app.closeVolumeModal();
+    }
+}
+
+// Mobile interface functions
+function toggleMobileSidebar() {
+    const app = window.arApp;
+    if (app) {
+        app.toggleMobileSidebar();
+    }
+}
+
+function toggleMobileControls() {
+    const app = window.arApp;
+    if (app) {
+        app.toggleMobileControls();
+    }
+}
+
+function updateMobileScale(value) {
+    const app = window.arApp;
+    if (app) {
+        app.updateMobileScale(value);
+    }
+}
+
+function updateMobileRotation(axis, value) {
+    const app = window.arApp;
+    if (app) {
+        app.updateMobileRotation(axis, value);
+    }
+}
+
+function updateMobileLighting(value) {
+    const app = window.arApp;
+    if (app) {
+        app.updateMobileLighting(value);
+    }
+}
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

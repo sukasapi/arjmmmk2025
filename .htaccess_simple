@@ -1,0 +1,46 @@
+# Simple .htaccess for AR Model Viewer
+# Use this if the main .htaccess causes 403 errors
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Force HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# MIME Types
+AddType application/javascript .js
+AddType text/css .css
+AddType application/json .json
+AddType model/gltf-binary .glb
+AddType model/gltf+json .gltf
+AddType audio/mpeg .mp3
+AddType audio/wav .wav
+AddType audio/ogg .ogg
+
+# Allow all file types
+<FilesMatch ".*">
+    Require all granted
+</FilesMatch>
+
+# Default index files
+DirectoryIndex index.html indexAR.html
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# Browser caching
+<IfModule mod_expires.c>
+    ExpiresActive on
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    ExpiresByType application/json "access plus 1 day"
+    ExpiresByType text/html "access plus 1 day"
+</IfModule>

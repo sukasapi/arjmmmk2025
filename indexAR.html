@@ -409,6 +409,435 @@
             background: #0056b3;
         }
 
+        /* AR Desktop-like Mode */
+        .ar-desktop-mode {
+            display: flex;
+            height: calc(100vh - 60px);
+            background: #1c1c1e;
+        }
+
+        /* Mobile Sidebar */
+        .mobile-sidebar {
+            width: 280px;
+            background: #2c2c2e;
+            border-right: 1px solid #3a3a3c;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            height: calc(100vh - 60px);
+            z-index: 1000;
+        }
+
+        .mobile-sidebar.show {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #3a3a3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header h3 {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-sidebar-btn {
+            background: none;
+            border: none;
+            color: #8e8e93;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-sidebar-btn:hover {
+            color: white;
+        }
+
+        .model-gallery {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .model-item {
+            background: #3a3a3c;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .model-item:hover {
+            background: #4a4a4c;
+            transform: translateY(-2px);
+        }
+
+        .model-item.selected {
+            border-color: #007AFF;
+            background: #4a4a4c;
+        }
+
+        .model-thumbnail {
+            width: 100%;
+            height: 120px;
+            background: #5a5a5c;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            overflow: hidden;
+        }
+
+        .model-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .model-info h4 {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .model-info p {
+            color: #8e8e93;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        /* Mobile Main */
+        .mobile-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-main.sidebar-open {
+            margin-left: 280px;
+        }
+
+        /* Hamburger Menu */
+        .hamburger-menu {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            z-index: 1001;
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .hamburger-menu span {
+            width: 20px;
+            height: 2px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .hamburger-menu:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Mobile Canvas Container */
+        .mobile-canvas-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mobile-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: transparent;
+        }
+
+        /* Mobile Object Controls */
+        .mobile-object-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 200px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .mobile-object-controls.show {
+            transform: translateX(0);
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #3a3a3c;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007AFF;
+            cursor: pointer;
+        }
+
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007AFF;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Mobile Controls Toggle */
+        .mobile-controls-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-controls-toggle:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        /* AR Instructions */
+        .ar-instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .instruction-text h3 {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .instruction-text p {
+            color: #8e8e93;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .tracker-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .status-indicator {
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-text {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Loading */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 16px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        /* Volume Modal for Mobile */
+        .volume-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .volume-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .volume-modal-content {
+            background: #1c1c1e;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .volume-modal.show .volume-modal-content {
+            transform: scale(1);
+        }
+
+        .volume-modal-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #007AFF;
+        }
+
+        .volume-modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .volume-modal-message {
+            font-size: 14px;
+            color: #8e8e93;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .volume-modal-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        .volume-modal-btn:hover {
+            background: #0056b3;
+        }
+
+        .volume-modal-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Volume Modal Loading State */
+        .volume-modal-loading {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .volume-modal-loading .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #3a3a3c;
+            border-top: 4px solid #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .volume-modal-loading .loading-text {
+            color: #8e8e93;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
     </style>
 </head>
@@ -427,122 +856,98 @@
             </div>
         </div>
 
-        <!-- 3D Scan Screen -->
-        <div class="screen" id="scan-screen">
-            <div class="header">
-                <button class="reset-btn" onclick="resetApp()">Reset</button>
-                <div></div>
-            </div>
-            
-            <div class="main-content">
-                <div class="scan-screen">
-                    <h1 class="scan-title">3D Scan</h1>
-                    
-                    <div class="capture-area" id="capture-area">
-                        <div class="capture-handles handle-tl"></div>
-                        <div class="capture-handles handle-tr"></div>
-                        <div class="capture-handles handle-bl"></div>
-                        <div class="capture-handles handle-br"></div>
-                        <div class="capture-handles handle-t"></div>
-                        <div class="capture-handles handle-b"></div>
-                        <div class="capture-handles handle-l"></div>
-                        <div class="capture-handles handle-r"></div>
-                        
-                        <canvas id="ar-canvas"></canvas>
-                    </div>
-                    
-                    <div class="capture-instructions">
-                        <h3>AR Code Object Capture</h3>
-                        <p>Move around to ensure that the whole object is inside the box. Drag handles to manually resize.</p>
-                    </div>
-                    
-                    <button class="start-capture-btn" onclick="startCapture()">Start Capture</button>
-                    
-                    <div class="loading" id="mobile-loading">Capturing object...</div>
+        <!-- AR Mode with Desktop-like Interface -->
+        <div class="ar-desktop-mode" id="ar-desktop-mode">
+            <!-- Sidebar -->
+            <div class="mobile-sidebar" id="mobile-sidebar">
+                <div class="sidebar-header">
+                    <h3>Model Gallery</h3>
+                    <button class="close-sidebar-btn" onclick="toggleMobileSidebar()">×</button>
+                </div>
+                <div class="model-gallery" id="mobile-model-gallery">
+                    <!-- Model gallery will be populated by JavaScript -->
                 </div>
             </div>
-            
-            <div class="footer">
-                <div class="footer-icon">↻</div>
-                <div class="progress-indicator">1/3</div>
-                <div class="footer-icon">?</div>
-            </div>
-        </div>
 
-        <!-- 3D Modeling Screen -->
-        <div class="screen" id="modeling-screen" style="display: none;">
-            <div class="header">
-                <button class="reset-btn" onclick="resetApp()">Reset</button>
-                <button class="next-btn" onclick="nextStep()">Next</button>
-            </div>
-            
-            <div class="main-content">
-                <div class="modeling-screen">
-                    <h1 class="modeling-title">3D Modeling</h1>
+            <!-- Main AR Area -->
+            <div class="mobile-main" id="mobile-main">
+                <!-- Hamburger Menu -->
+                <button class="hamburger-menu" id="mobile-hamburger-menu" onclick="toggleMobileSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
+                <!-- AR Canvas Container -->
+                <div class="mobile-canvas-container" id="mobile-canvas-container">
+                    <canvas id="mobile-canvas"></canvas>
                     
-                    <div class="model-preview">
-                        <div class="model-placeholder" id="model-placeholder">📦</div>
-                        <div class="placement-indicator">
-                            <div style="width: 60px; height: 60px; border: 2px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <div style="width: 40px; height: 40px; background: white; border-radius: 50%;"></div>
+                    <!-- Object Controls -->
+                    <div class="mobile-object-controls" id="mobile-object-controls">
+                        <div class="control-group">
+                            <label>Scale:</label>
+                            <input type="range" id="mobile-scale-slider" min="0.1" max="3" step="0.1" value="1" oninput="updateMobileScale(this.value)">
+                        </div>
+                        <div class="control-group">
+                            <label>Rotation X:</label>
+                            <input type="range" id="mobile-rotation-x" min="0" max="360" step="1" value="0" oninput="updateMobileRotation('x', this.value)">
+                        </div>
+                        <div class="control-group">
+                            <label>Rotation Y:</label>
+                            <input type="range" id="mobile-rotation-y" min="0" max="360" step="1" value="0" oninput="updateMobileRotation('y', this.value)">
+                        </div>
+                        <div class="control-group">
+                            <label>Lighting:</label>
+                            <input type="range" id="mobile-lighting-slider" min="0.1" max="2" step="0.1" value="1" oninput="updateMobileLighting(this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Controls Toggle -->
+                    <button class="mobile-controls-toggle" id="mobile-controls-toggle" onclick="toggleMobileControls()">
+                        ⚙️
+                    </button>
+
+                    <!-- AR Instructions -->
+                    <div class="ar-instructions" id="ar-instructions">
+                        <div class="instruction-text">
+                            <h3>AR Mode Active</h3>
+                            <p>Point your camera at a flat surface</p>
+                            <p>Wait for tracker detection...</p>
+                            <div class="tracker-status" id="tracker-status">
+                                <span class="status-indicator">🔍</span>
+                                <span class="status-text">Looking for tracker...</span>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <div class="footer">
-                <div class="footer-icon">🖼️</div>
-                <div class="progress-indicator">2/3</div>
-                <div class="footer-icon">📷</div>
-            </div>
-        </div>
 
-        <!-- AR QR Codes Screen -->
-        <div class="screen" id="qr-screen" style="display: none;">
-            <div class="header">
-                <button class="reset-btn" onclick="resetApp()">Reset</button>
-                <div></div>
-            </div>
-            
-            <div class="main-content">
-                <div class="qr-screen">
-                    <h1 class="qr-title">AR QR Codes</h1>
-                    
-                    <div class="success-message">
-                        <h2 class="success-title">3D Model Created</h2>
-                        <p class="success-text">Your 3D model has been saved in the .USDZ format in the following directory:</p>
-                        <p class="success-text">On My iPhone/AR Code/</p>
-                        <p class="success-text">Your AR Code has been successfully generated and added to your AR Code dashboard.</p>
-                    </div>
-                    
-                    <div class="qr-code">
-                        <div class="qr-pattern"></div>
-                        <div class="qr-logo">AR</div>
-                    </div>
-                    
-                    <button class="view-ar-btn" onclick="viewInAR()">
-                        <span>📦</span>
-                        View in AR
-                    </button>
+                    <!-- Loading -->
+                    <div class="loading" id="mobile-loading">Loading model...</div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- AR Mode Overlay -->
-    <div class="ar-mode" id="ar-mode" style="display: none;">
-        <div class="ar-controls">
-            <button class="ar-btn" onclick="exitAR()">Exit AR</button>
-            <button class="ar-btn primary" onclick="placeModel()">Place Model</button>
-        </div>
-        
     </div>
 
     <div id="notification" class="notification">
         AR mode activated!
     </div>
 
+    <!-- Volume Modal -->
+    <div class="volume-modal" id="volume-modal">
+        <div class="volume-modal-content">
+            <div class="volume-modal-icon">🔊</div>
+            <h2 class="volume-modal-title">Hidupkan Volume Device</h2>
+            <p class="volume-modal-message">
+                Pastikan volume device Anda sudah dihidupkan untuk mendengarkan penjelasan audio yang tersedia untuk setiap model 3D.
+            </p>
+            <button class="volume-modal-btn" onclick="closeVolumeModal()">OK</button>
+            
+            <!-- Loading State -->
+            <div class="volume-modal-loading" id="volume-modal-loading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading model...</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -554,3 +959,4 @@
     <script src="appAR.js"></script>
 </body>
 </html>
+
