@@ -64,6 +64,19 @@ class ARModelViewer {
             this.requestCameraPermission();
         }, 1000);
         
+        // Add click event listener to enable camera on any user interaction
+        document.addEventListener('click', () => {
+            if (!this.cameraFeedActive) {
+                this.forceCameraInit();
+            }
+        }, { once: true });
+        
+        document.addEventListener('touchstart', () => {
+            if (!this.cameraFeedActive) {
+                this.forceCameraInit();
+            }
+        }, { once: true });
+        
         // Show marker instructions after a short delay
         setTimeout(() => {
             this.showMarkerInstructions();
@@ -357,6 +370,76 @@ class ARModelViewer {
         this.showCameraPermissionModal();
     }
     
+    // Force camera initialization with user interaction
+    async forceCameraInit() {
+        try {
+            console.log('Force initializing camera...');
+            
+            // Try to get camera access
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1280, min: 640 },
+                    height: { ideal: 720, min: 480 }
+                },
+                audio: false
+            });
+            
+            console.log('Camera access granted via force init');
+            this.cameraFeedActive = true;
+            
+            // Create video element
+            const video = document.createElement('video');
+            video.id = 'camera-feed';
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = true;
+            video.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: 1;
+                background: #000;
+            `;
+            
+            // Add video to canvas container
+            const canvasContainer = document.getElementById('mobile-canvas-container');
+            if (canvasContainer) {
+                // Remove existing video if any
+                const existingVideo = canvasContainer.querySelector('#camera-feed');
+                if (existingVideo) {
+                    existingVideo.remove();
+                }
+                
+                canvasContainer.appendChild(video);
+                
+                // Wait for video to load
+                video.addEventListener('loadedmetadata', () => {
+                    console.log('Force camera feed loaded successfully');
+                    this.updateTrackerStatus('Camera ready - Looking for markers...', '📷');
+                    
+                    // Force play the video
+                    video.play().catch(e => {
+                        console.error('Force video play failed:', e);
+                    });
+                });
+                
+                video.addEventListener('error', (e) => {
+                    console.error('Force camera feed error:', e);
+                    this.setupFallbackBackground();
+                });
+            }
+            
+        } catch (error) {
+            console.error('Force camera access failed:', error);
+            this.setupFallbackBackground();
+        }
+    }
+    
     // Setup marker patterns for each model
     setupMarkerPatterns() {
         // Define marker patterns for each model
@@ -477,23 +560,30 @@ class ARModelViewer {
     // Initialize camera feed
     async initializeCameraFeed() {
         try {
-            // Request camera access
+            console.log('Requesting camera access...');
+            
+            // Request camera access with more specific constraints
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: 'environment', // Use back camera
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                }
+                    facingMode: { ideal: 'environment' }, // Use back camera
+                    width: { ideal: 1280, min: 640 },
+                    height: { ideal: 720, min: 480 },
+                    frameRate: { ideal: 30, min: 15 }
+                },
+                audio: false
             });
             
             console.log('Camera access granted');
+            this.cameraFeedActive = true;
             
             // Create video element
             const video = document.createElement('video');
+            video.id = 'camera-feed';
             video.srcObject = stream;
             video.autoplay = true;
-            video.muted = true;
             video.playsInline = true;
+            video.muted = true;
+            video.loop = false;
             video.style.cssText = `
                 position: absolute;
                 top: 0;
@@ -501,29 +591,57 @@ class ARModelViewer {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
-                z-index: -1;
+                z-index: 1;
+                background: #000;
             `;
             
             // Add video to canvas container
             const canvasContainer = document.getElementById('mobile-canvas-container');
             if (canvasContainer) {
+                // Remove existing video if any
+                const existingVideo = canvasContainer.querySelector('#camera-feed');
+                if (existingVideo) {
+                    existingVideo.remove();
+                }
+                
                 canvasContainer.appendChild(video);
+                
+                // Wait for video to load
+                video.addEventListener('loadedmetadata', () => {
+                    console.log('Camera feed loaded successfully');
+                    console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                    this.updateTrackerStatus('Camera ready - Looking for markers...', '📷');
+                    
+                    // Force play the video
+                    video.play().catch(e => {
+                        console.error('Video play failed:', e);
+                    });
+                });
+                
+                video.addEventListener('canplay', () => {
+                    console.log('Video can play');
+                    video.play().catch(e => {
+                        console.error('Video play failed on canplay:', e);
+                    });
+                });
+                
+                video.addEventListener('error', (e) => {
+                    console.error('Camera feed error:', e);
+                    this.setupFallbackBackground();
+                });
+                
+                // Force play after a short delay
+                setTimeout(() => {
+                    if (video.paused) {
+                        video.play().catch(e => {
+                            console.error('Delayed video play failed:', e);
+                        });
+                    }
+                }, 1000);
             }
             
-            // Wait for video to load
-            video.addEventListener('loadedmetadata', () => {
-                console.log('Camera feed loaded');
-                this.cameraFeedActive = true;
-            });
-            
-            // Handle video errors
-            video.addEventListener('error', (error) => {
-                console.error('Camera feed error:', error);
-                this.setupFallbackBackground();
-            });
-            
         } catch (error) {
-            console.error('Camera access denied:', error);
+            console.error('Camera access denied or failed:', error);
             this.showCameraPermissionModal();
         }
     }
@@ -591,7 +709,7 @@ class ARModelViewer {
                     cursor: pointer;
                     transition: all 0.3s ease;
                 ">Continue Without Camera</button>
-                <button onclick="this.parentElement.parentElement.remove(); window.arApp.initializeCameraFeed();" style="
+                <button onclick="this.parentElement.parentElement.remove(); window.arApp.forceCameraInit();" style="
                     background: #007AFF;
                     color: white;
                     border: none;
@@ -601,7 +719,7 @@ class ARModelViewer {
                     font-weight: 600;
                     cursor: pointer;
                     transition: all 0.3s ease;
-                ">Try Again</button>
+                ">Enable Camera</button>
             </div>
         `;
         
@@ -1494,6 +1612,65 @@ class ARModelViewer {
         
         if (instructionP) {
             instructionP.textContent = 'Point your camera at the AR marker to see the 3D model';
+        }
+        
+        // Add camera enable button if camera is not active
+        if (!this.cameraFeedActive) {
+            this.addCameraEnableButton();
+        }
+    }
+    
+    // Add camera enable button
+    addCameraEnableButton() {
+        // Remove existing button if any
+        const existingButton = document.getElementById('camera-enable-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // Create camera enable button
+        const button = document.createElement('button');
+        button.id = 'camera-enable-button';
+        button.innerHTML = '📷 Enable Camera';
+        button.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        // Add click event
+        button.addEventListener('click', () => {
+            this.forceCameraInit();
+            button.remove();
+        });
+        
+        // Add hover effect
+        button.addEventListener('mouseenter', () => {
+            button.style.background = '#0056b3';
+            button.style.transform = 'translate(-50%, -50%) scale(1.05)';
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.background = '#007AFF';
+            button.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
+        
+        // Add to canvas container
+        const canvasContainer = document.getElementById('mobile-canvas-container');
+        if (canvasContainer) {
+            canvasContainer.appendChild(button);
         }
     }
     

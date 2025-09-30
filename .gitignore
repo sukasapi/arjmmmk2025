@@ -1,0 +1,42 @@
+# Ignore .htaccess files
+.htaccess
+.htaccess_simple
+
+# Ignore other server configuration files
+web.config
+
+# Ignore node_modules
+node_modules/
+
+# Ignore package-lock.json
+package-lock.json
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.temp
+
+# Ignore build files
+dist/
+build/
+
+# Ignore environment files
+.env
+.env.local
+.env.production
+
+# Ignore cache files
+.cache/
+*.cache
