@@ -26,7 +26,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #007AFF;
+            background: #000;
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -34,8 +34,6 @@
         /* Mobile Layout */
         .mobile-container {
             width: 100%;
-            max-width: 375px;
-            margin: 0 auto;
             background: #000;
             min-height: 100vh;
             position: relative;
@@ -413,7 +411,10 @@
         .ar-desktop-mode {
             display: flex;
             height: calc(100vh - 60px);
-            background: #1c1c1e;
+            background: #000;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         /* Mobile Sidebar */
@@ -534,6 +535,9 @@
             flex-direction: column;
             position: relative;
             transition: all 0.3s ease;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         .mobile-main.sidebar-open {
@@ -576,13 +580,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         #mobile-canvas {
-            width: 100%;
-            height: 100%;
+            width: 100% !important;
+            height: 100% !important;
             display: block;
             background: transparent;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            cursor: grab;
+            touch-action: none;
+        }
+        
+        #mobile-canvas:active {
+            cursor: grabbing;
         }
 
         /* Mobile Object Controls */
@@ -733,111 +749,103 @@
             display: block;
         }
 
-        /* Volume Modal for Mobile */
-        .volume-modal {
-            position: fixed;
+        /* AR Performance Metrics */
+        .ar-performance-metrics {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 139, 0.8);
+            border-radius: 8px;
+            padding: 8px 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fps-counter {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .fps-counter span {
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+        }
+
+        .performance-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .performance-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+
+        /* AR Tracking Visualization */
+        .ar-axis-lines {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 500;
         }
 
-        .volume-modal.show {
-            opacity: 1;
-            visibility: visible;
+        .axis-line {
+            position: absolute;
+            height: 2px;
+            transform-origin: left center;
+            opacity: 0.8;
         }
 
-        .volume-modal-content {
-            background: #1c1c1e;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 320px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            transform: scale(0.8);
-            transition: transform 0.3s ease;
+        .axis-x {
+            background: #ff0000;
+            width: 50px;
         }
 
-        .volume-modal.show .volume-modal-content {
-            transform: scale(1);
+        .axis-y {
+            background: #00ff00;
+            width: 50px;
+            transform: rotate(90deg);
         }
 
-        .volume-modal-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-            color: #007AFF;
+        .axis-z {
+            background: #0000ff;
+            width: 50px;
+            transform: rotate(45deg);
         }
 
-        .volume-modal-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-            margin-bottom: 15px;
+        /* AR Object Overlay */
+        .ar-object-overlay {
+            position: absolute;
+            pointer-events: none;
+            z-index: 600;
+            opacity: 0.7;
+            mix-blend-mode: overlay;
         }
 
-        .volume-modal-message {
-            font-size: 14px;
-            color: #8e8e93;
-            line-height: 1.5;
-            margin-bottom: 25px;
+        .ar-stripe-overlay {
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 8px,
+                #ffff00 8px,
+                #ffff00 16px
+            );
+            border-radius: 4px;
         }
 
-        .volume-modal-btn {
-            background: #007AFF;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-width: 100px;
-        }
-
-        .volume-modal-btn:hover {
-            background: #0056b3;
-        }
-
-        .volume-modal-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* Volume Modal Loading State */
-        .volume-modal-loading {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .volume-modal-loading .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #3a3a3c;
-            border-top: 4px solid #007AFF;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        .volume-modal-loading .loading-text {
-            color: #8e8e93;
-            font-size: 14px;
-            margin: 0;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
 
     </style>
 </head>
@@ -882,6 +890,16 @@
                 <div class="mobile-canvas-container" id="mobile-canvas-container">
                     <canvas id="mobile-canvas"></canvas>
                     
+                    <!-- AR Tracking Visualization -->
+                    <div class="ar-axis-lines" id="ar-axis-lines" style="display: none;">
+                        <div class="axis-line axis-x" id="axis-x"></div>
+                        <div class="axis-line axis-y" id="axis-y"></div>
+                        <div class="axis-line axis-z" id="axis-z"></div>
+                    </div>
+                    
+                    <!-- AR Object Overlay -->
+                    <div class="ar-object-overlay ar-stripe-overlay" id="ar-object-overlay" style="display: none;"></div>
+                    
                     <!-- Object Controls -->
                     <div class="mobile-object-controls" id="mobile-object-controls">
                         <div class="control-group">
@@ -900,12 +918,26 @@
                             <label>Lighting:</label>
                             <input type="range" id="mobile-lighting-slider" min="0.1" max="2" step="0.1" value="1" oninput="updateMobileLighting(this.value)">
                         </div>
+                        <div class="control-group">
+                            <label>AR Features:</label>
+                            <button onclick="toggleARFeatures()" id="ar-features-toggle">Show AR</button>
+                        </div>
                     </div>
 
                     <!-- Controls Toggle -->
                     <button class="mobile-controls-toggle" id="mobile-controls-toggle" onclick="toggleMobileControls()">
                         ⚙️
                     </button>
+
+                    <!-- AR Performance Metrics -->
+                    <div class="ar-performance-metrics" id="ar-performance-metrics">
+                        <div class="fps-counter">
+                            <span id="fps-display">60 FPS (47-60)</span>
+                            <div class="performance-bar">
+                                <div class="performance-fill" id="performance-fill"></div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- AR Instructions -->
                     <div class="ar-instructions" id="ar-instructions">
@@ -931,23 +963,6 @@
         AR mode activated!
     </div>
 
-    <!-- Volume Modal -->
-    <div class="volume-modal" id="volume-modal">
-        <div class="volume-modal-content">
-            <div class="volume-modal-icon">🔊</div>
-            <h2 class="volume-modal-title">Hidupkan Volume Device</h2>
-            <p class="volume-modal-message">
-                Pastikan volume device Anda sudah dihidupkan untuk mendengarkan penjelasan audio yang tersedia untuk setiap model 3D.
-            </p>
-            <button class="volume-modal-btn" onclick="closeVolumeModal()">OK</button>
-            
-            <!-- Loading State -->
-            <div class="volume-modal-loading" id="volume-modal-loading" style="display: none;">
-                <div class="loading-spinner"></div>
-                <p class="loading-text">Loading model...</p>
-            </div>
-        </div>
-    </div>
 
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -955,6 +970,19 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <!-- WebXR Polyfill -->
     <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@2.0.3/build/webxr-polyfill.js"></script>
+    <!-- WebXR Polyfill Configuration -->
+    <script>
+        // Configure WebXR polyfill
+        if (typeof WebXRPolyfill !== 'undefined') {
+            const polyfill = new WebXRPolyfill({
+                allowCardboardOnDesktop: true,
+                cardboardConfig: {
+                    fallback: true
+                }
+            });
+            console.log('WebXR Polyfill initialized');
+        }
+    </script>
     
     <script src="appAR.js"></script>
 </body>
