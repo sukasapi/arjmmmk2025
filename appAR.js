@@ -531,6 +531,38 @@ class ARModelViewer {
         this.isAudioPlaying = false;
     }
 
+    // Volume modal methods
+    showVolumeModal(callback) {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Store callback for when modal is closed
+        this.volumeModalCallback = callback;
+        
+        // Show modal
+        modal.classList.add('show');
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+    }
+    
+    closeVolumeModal() {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Hide modal
+        modal.classList.remove('show');
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        // Execute callback if exists
+        if (this.volumeModalCallback) {
+            this.volumeModalCallback();
+            this.volumeModalCallback = null;
+        }
+    }
+
 
     // Cleanup
     cleanup() {
@@ -554,16 +586,19 @@ function resetApp() {
 function startCapture() {
     const app = window.arApp;
     if (app) {
-        app.showLoading(true, 'mobile');
-        app.showNotification('Starting object capture...');
-        
-        // Load default model and simulate capture process
-        app.loadMobileModel();
-        
-        setTimeout(() => {
-            app.showLoading(false, 'mobile');
-            app.nextStep();
-        }, 2000);
+        // Show volume modal before starting capture
+        app.showVolumeModal(() => {
+            app.showLoading(true, 'mobile');
+            app.showNotification('Starting object capture...');
+            
+            // Load default model and simulate capture process
+            app.loadMobileModel();
+            
+            setTimeout(() => {
+                app.showLoading(false, 'mobile');
+                app.nextStep();
+            }, 2000);
+        });
     }
 }
 
@@ -595,6 +630,12 @@ function placeModel() {
     }
 }
 
+function closeVolumeModal() {
+    const app = window.arApp;
+    if (app) {
+        app.closeVolumeModal();
+    }
+}
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

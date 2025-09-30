@@ -752,6 +752,85 @@
             transform: translateX(0);
         }
 
+        /* Volume Modal */
+        .volume-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .volume-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .volume-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .volume-modal.show .volume-modal-content {
+            transform: scale(1);
+        }
+
+        .volume-modal-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #007AFF;
+        }
+
+        .volume-modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1c1c1e;
+            margin-bottom: 15px;
+        }
+
+        .volume-modal-message {
+            font-size: 16px;
+            color: #6d6d70;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        .volume-modal-btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .volume-modal-btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .volume-modal-btn:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -950,6 +1029,17 @@
         AR mode only available on mobile devices!
     </div>
 
+    <!-- Volume Modal -->
+    <div class="volume-modal" id="volume-modal">
+        <div class="volume-modal-content">
+            <div class="volume-modal-icon">🔊</div>
+            <h2 class="volume-modal-title">Hidupkan Volume Device</h2>
+            <p class="volume-modal-message">
+                Pastikan volume device Anda sudah dihidupkan untuk mendengarkan penjelasan audio yang tersedia untuk setiap model 3D.
+            </p>
+            <button class="volume-modal-btn" onclick="closeVolumeModal()">OK</button>
+        </div>
+    </div>
 
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

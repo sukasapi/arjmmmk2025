@@ -692,7 +692,11 @@ class ARModelViewer {
         if (!model) return;
         
         this.selectedModel = model;
-        this.loadDesktopModel(model.file, model.audio);
+        
+        // Show volume modal before loading model
+        this.showVolumeModal(() => {
+            this.loadDesktopModel(model.file, model.audio);
+        });
     }
 
     // Audio system methods
@@ -761,6 +765,38 @@ class ARModelViewer {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
         this.isAudioPlaying = false;
+    }
+
+    // Volume modal methods
+    showVolumeModal(callback) {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Store callback for when modal is closed
+        this.volumeModalCallback = callback;
+        
+        // Show modal
+        modal.classList.add('show');
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+    }
+    
+    closeVolumeModal() {
+        const modal = document.getElementById('volume-modal');
+        if (!modal) return;
+        
+        // Hide modal
+        modal.classList.remove('show');
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        // Execute callback if exists
+        if (this.volumeModalCallback) {
+            this.volumeModalCallback();
+            this.volumeModalCallback = null;
+        }
     }
 
 
@@ -1162,6 +1198,13 @@ function loadSelectedModel(modelId) {
     const app = window.arApp;
     if (app) {
         app.loadSelectedModel(modelId);
+    }
+}
+
+function closeVolumeModal() {
+    const app = window.arApp;
+    if (app) {
+        app.closeVolumeModal();
     }
 }
 
