@@ -831,6 +831,33 @@
         .volume-modal-btn:active {
             transform: translateY(0);
         }
+
+        /* Volume Modal Loading State */
+        .volume-modal-loading {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .volume-modal-loading .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .volume-modal-loading .loading-text {
+            color: #6d6d70;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -1038,6 +1065,12 @@
                 Pastikan volume device Anda sudah dihidupkan untuk mendengarkan penjelasan audio yang tersedia untuk setiap model 3D.
             </p>
             <button class="volume-modal-btn" onclick="closeVolumeModal()">OK</button>
+            
+            <!-- Loading State -->
+            <div class="volume-modal-loading" id="volume-modal-loading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading model...</p>
+            </div>
         </div>
     </div>
 

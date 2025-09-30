@@ -23,11 +23,15 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     
     # Content Security Policy for AR/WebXR
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https:; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https:; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
 </IfModule>
 
 # MIME Types for 3D Models and Audio
 <IfModule mod_mime.c>
+    # JavaScript files
+    AddType application/javascript .js
+    AddType text/javascript .js
+    
     # GLB/GLTF 3D Models
     AddType model/gltf-binary .glb
     AddType model/gltf+json .gltf
@@ -43,6 +47,12 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     # WebXR and AR related
     AddType application/wasm .wasm
     AddType text/plain .js.map
+    
+    # CSS files
+    AddType text/css .css
+    
+    # HTML files
+    AddType text/html .html .htm
 </IfModule>
 
 # Compression for better performance
@@ -125,6 +135,39 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
         Header set Expires 0
     </FilesMatch>
 </IfModule>
+
+# Allow access to JavaScript files
+<FilesMatch "\.(js)$">
+    Require all granted
+    Header set Content-Type "application/javascript"
+</FilesMatch>
+
+# Allow access to CSS files
+<FilesMatch "\.(css)$">
+    Require all granted
+    Header set Content-Type "text/css"
+</FilesMatch>
+
+# Allow access to JSON files
+<FilesMatch "\.(json)$">
+    Require all granted
+    Header set Content-Type "application/json"
+</FilesMatch>
+
+# Allow access to 3D model files
+<FilesMatch "\.(glb|gltf)$">
+    Require all granted
+</FilesMatch>
+
+# Allow access to audio files
+<FilesMatch "\.(mp3|wav|ogg)$">
+    Require all granted
+</FilesMatch>
+
+# Allow access to image files
+<FilesMatch "\.(png|jpg|jpeg|gif|svg|webp)$">
+    Require all granted
+</FilesMatch>
 
 # Prevent access to sensitive files
 <FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak)$">
