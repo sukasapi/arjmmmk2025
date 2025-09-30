@@ -37,6 +37,15 @@ class ARModelViewer {
         this.axisLinesVisible = false;
         this.objectOverlayVisible = false;
         
+        // Camera feed
+        this.cameraFeedActive = false;
+        
+        // Marker-based AR
+        this.markerDetected = false;
+        this.currentMarker = null;
+        this.markerPatterns = new Map();
+        this.markerSize = 0.1; // 10cm marker size
+        
         this.audioContextEnabled = false;
         this.init();
     }
@@ -49,6 +58,17 @@ class ARModelViewer {
         this.loadModelGallery();
         this.enableAudioContext();
         this.setupMobileDragControls();
+        
+        // Request camera permission after a short delay
+        setTimeout(() => {
+            this.requestCameraPermission();
+        }, 1000);
+        
+        // Show marker instructions after a short delay
+        setTimeout(() => {
+            this.showMarkerInstructions();
+        }, 2000);
+        
         this.simulateTrackerDetection();
     }
     
@@ -311,6 +331,328 @@ class ARModelViewer {
         
         // Lighting
         this.setupLighting();
+        
+        // Setup camera feed fallback
+        this.setupCameraFeedFallback();
+        
+        // Setup marker patterns
+        this.setupMarkerPatterns();
+    }
+    
+    // Setup camera feed fallback
+    setupCameraFeedFallback() {
+        // Check if we can access camera
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            // Try to initialize camera feed
+            this.initializeCameraFeed();
+        } else {
+            console.log('Camera access not available, using fallback background');
+            this.setupFallbackBackground();
+        }
+    }
+    
+    // Request camera permission with user interaction
+    requestCameraPermission() {
+        // Show camera permission modal first
+        this.showCameraPermissionModal();
+    }
+    
+    // Setup marker patterns for each model
+    setupMarkerPatterns() {
+        // Define marker patterns for each model
+        this.markerPatterns.set('aztec', {
+            id: 'aztec',
+            name: 'Aztec Marker',
+            pattern: this.createAztecMarkerPattern(),
+            model: 'aztec.glb',
+            audio: 'aztec.mp3'
+        });
+        
+        this.markerPatterns.set('jagannath', {
+            id: 'jagannath',
+            name: 'Jagannath Marker',
+            pattern: this.createJagannathMarkerPattern(),
+            model: 'jagannath_puri_temple_model.glb',
+            audio: 'jagannath_puri_temple_model.mp3'
+        });
+        
+        console.log('Marker patterns setup complete');
+    }
+    
+    // Create Aztec marker pattern
+    createAztecMarkerPattern() {
+        // Create a simple pattern for Aztec marker
+        const pattern = document.createElement('canvas');
+        pattern.width = 256;
+        pattern.height = 256;
+        const ctx = pattern.getContext('2d');
+        
+        // Draw Aztec-inspired pattern
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 256, 256);
+        
+        // Outer border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(16, 16, 224, 224);
+        
+        // Inner pattern - Aztec sun
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(128, 128, 80, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Aztec sun rays
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 4;
+        for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI) / 4;
+            const x1 = 128 + Math.cos(angle) * 60;
+            const y1 = 128 + Math.sin(angle) * 60;
+            const x2 = 128 + Math.cos(angle) * 100;
+            const y2 = 128 + Math.sin(angle) * 100;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+        
+        // Center symbol
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(128, 128, 30, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        return pattern;
+    }
+    
+    // Create Jagannath marker pattern
+    createJagannathMarkerPattern() {
+        // Create a simple pattern for Jagannath marker
+        const pattern = document.createElement('canvas');
+        pattern.width = 256;
+        pattern.height = 256;
+        const ctx = pattern.getContext('2d');
+        
+        // Draw Jagannath-inspired pattern
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 256, 256);
+        
+        // Outer border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(16, 16, 224, 224);
+        
+        // Inner pattern - Temple structure
+        ctx.fillStyle = '#ff6b35';
+        ctx.fillRect(64, 64, 128, 128);
+        
+        // Temple roof
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.moveTo(64, 64);
+        ctx.lineTo(128, 32);
+        ctx.lineTo(192, 64);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Temple pillars
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(80, 80, 16, 80);
+        ctx.fillRect(160, 80, 16, 80);
+        
+        // Temple door
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(120, 120, 16, 40);
+        
+        // Center symbol
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(128, 128, 20, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        return pattern;
+    }
+    
+    // Initialize camera feed
+    async initializeCameraFeed() {
+        try {
+            // Request camera access
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment', // Use back camera
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            });
+            
+            console.log('Camera access granted');
+            
+            // Create video element
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                z-index: -1;
+            `;
+            
+            // Add video to canvas container
+            const canvasContainer = document.getElementById('mobile-canvas-container');
+            if (canvasContainer) {
+                canvasContainer.appendChild(video);
+            }
+            
+            // Wait for video to load
+            video.addEventListener('loadedmetadata', () => {
+                console.log('Camera feed loaded');
+                this.cameraFeedActive = true;
+            });
+            
+            // Handle video errors
+            video.addEventListener('error', (error) => {
+                console.error('Camera feed error:', error);
+                this.setupFallbackBackground();
+            });
+            
+        } catch (error) {
+            console.error('Camera access denied:', error);
+            this.showCameraPermissionModal();
+        }
+    }
+    
+    // Show camera permission modal
+    showCameraPermissionModal() {
+        // Remove existing modal if any
+        const existingModal = document.getElementById('camera-permission-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create camera permission modal
+        const modal = document.createElement('div');
+        modal.id = 'camera-permission-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: #1c1c1e;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            color: white;
+        `;
+        
+        content.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 20px;">📷</div>
+            <h2 style="margin-bottom: 15px; color: #007AFF;">Camera Access Required</h2>
+            <p style="margin-bottom: 20px; color: #8e8e93; line-height: 1.5;">
+                To use AR features, please allow camera access. The app will work in fallback mode without camera.
+            </p>
+            <div style="background: #2c2c2e; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+                <h4 style="color: #007AFF; margin-bottom: 10px;">How to enable camera:</h4>
+                <ul style="color: #8e8e93; font-size: 14px; line-height: 1.6;">
+                    <li>• Click "Allow" when prompted</li>
+                    <li>• Check browser settings</li>
+                    <li>• Ensure HTTPS connection</li>
+                    <li>• Try refreshing the page</li>
+                </ul>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="this.parentElement.parentElement.remove(); window.arApp.setupFallbackBackground();" style="
+                    background: #8e8e93;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 25px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Continue Without Camera</button>
+                <button onclick="this.parentElement.parentElement.remove(); window.arApp.initializeCameraFeed();" style="
+                    background: #007AFF;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 25px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Try Again</button>
+            </div>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // Auto remove after 15 seconds
+        setTimeout(() => {
+            if (modal && modal.parentNode) {
+                modal.remove();
+                this.setupFallbackBackground();
+            }
+        }, 15000);
+    }
+    
+    // Setup fallback background
+    setupFallbackBackground() {
+        console.log('Setting up fallback background');
+        
+        // Create a gradient background
+        const canvas = document.getElementById('mobile-canvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a1a1a');
+            gradient.addColorStop(1, '#000000');
+            
+            // Set background
+            this.scene.background = new THREE.Color(0x1a1a1a);
+        }
+        
+        // Add some visual elements to make it look more like AR
+        this.addFallbackVisualElements();
+    }
+    
+    // Add fallback visual elements
+    addFallbackVisualElements() {
+        // Add a grid pattern
+        const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+        gridHelper.position.y = -2;
+        this.scene.add(gridHelper);
+        
+        // Add some ambient lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        this.scene.add(ambientLight);
+        
+        // Add directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        this.scene.add(directionalLight);
     }
 
     // Setup lighting for mobile
@@ -519,6 +861,376 @@ class ARModelViewer {
         
         // Populate mobile model gallery UI
         this.populateMobileGallery();
+        this.populateMarkerGallery();
+    }
+    
+    // Populate marker gallery
+    populateMarkerGallery() {
+        const markerGallery = document.getElementById('mobile-model-gallery');
+        if (!markerGallery) return;
+        
+        // Add marker section header
+        const markerHeader = document.createElement('div');
+        markerHeader.style.cssText = `
+            padding: 15px;
+            background: #3a3a3c;
+            border-bottom: 1px solid #48484a;
+            color: #007AFF;
+            font-weight: bold;
+            font-size: 16px;
+        `;
+        markerHeader.textContent = 'AR Markers';
+        markerGallery.appendChild(markerHeader);
+        
+        // Add markers
+        this.markerPatterns.forEach((markerData, markerId) => {
+            const markerElement = this.createMarkerElement(markerData);
+            markerGallery.appendChild(markerElement);
+        });
+    }
+    
+    // Create marker element
+    createMarkerElement(markerData) {
+        const markerElement = document.createElement('div');
+        markerElement.className = 'marker-item';
+        markerElement.style.cssText = `
+            padding: 15px;
+            border-bottom: 1px solid #48484a;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        `;
+        
+        markerElement.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="width: 60px; height: 60px; border: 2px solid #007AFF; border-radius: 8px; overflow: hidden; background: white; display: flex; align-items: center; justify-content: center;">
+                    <canvas width="60" height="60" style="max-width: 100%; max-height: 100%;"></canvas>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; color: white; margin-bottom: 5px;">${markerData.name}</div>
+                    <div style="font-size: 12px; color: #8e8e93;">Model: ${markerData.model}</div>
+                    <div style="font-size: 12px; color: #8e8e93;">Audio: ${markerData.audio}</div>
+                </div>
+            </div>
+        `;
+        
+        // Draw marker pattern on canvas
+        const canvas = markerElement.querySelector('canvas');
+        const ctx = canvas.getContext('2d');
+        const patternCanvas = markerData.pattern;
+        ctx.drawImage(patternCanvas, 0, 0, 60, 60);
+        
+        // Add click event
+        markerElement.addEventListener('click', () => {
+            this.selectMarker(markerData);
+        });
+        
+        // Add hover effect
+        markerElement.addEventListener('mouseenter', () => {
+            markerElement.style.backgroundColor = '#48484a';
+        });
+        
+        markerElement.addEventListener('mouseleave', () => {
+            markerElement.style.backgroundColor = 'transparent';
+        });
+        
+        return markerElement;
+    }
+    
+    // Select marker
+    selectMarker(markerData) {
+        console.log('Marker selected:', markerData.name);
+        
+        // Remove previous selection
+        document.querySelectorAll('.marker-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Add selection to clicked item
+        event.currentTarget.classList.add('selected');
+        
+        // Update current marker
+        this.currentMarker = markerData;
+        
+        // Show marker download option
+        this.showMarkerDownload(markerData);
+        
+        // If marker is already detected, load the model
+        if (this.markerDetected) {
+            this.loadMobileModel(markerData.model, markerData.audio);
+        }
+    }
+    
+    // Show marker download option
+    showMarkerDownload(markerData) {
+        // Remove existing download button if any
+        const existingButton = document.getElementById('marker-download-button');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // Create download container
+        const downloadContainer = document.createElement('div');
+        downloadContainer.id = 'marker-download-container';
+        downloadContainer.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 2000;
+        `;
+        
+        // Create download button
+        const downloadButton = document.createElement('button');
+        downloadButton.id = 'marker-download-button';
+        downloadButton.innerHTML = '📥 Download Marker';
+        downloadButton.style.cssText = `
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        // Create print guide button
+        const printGuideButton = document.createElement('button');
+        printGuideButton.id = 'print-guide-button';
+        printGuideButton.innerHTML = '📖 Print Guide';
+        printGuideButton.style.cssText = `
+            background: #34C759;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        // Add click event to download marker
+        downloadButton.addEventListener('click', () => {
+            this.downloadMarker(markerData);
+        });
+        
+        // Add click event to show print guide
+        printGuideButton.addEventListener('click', () => {
+            this.showPrintGuide();
+        });
+        
+        // Add hover effects
+        downloadButton.addEventListener('mouseenter', () => {
+            downloadButton.style.background = '#0056b3';
+            downloadButton.style.transform = 'scale(1.05)';
+        });
+        
+        downloadButton.addEventListener('mouseleave', () => {
+            downloadButton.style.background = '#007AFF';
+            downloadButton.style.transform = 'scale(1)';
+        });
+        
+        printGuideButton.addEventListener('mouseenter', () => {
+            printGuideButton.style.background = '#28a745';
+            printGuideButton.style.transform = 'scale(1.05)';
+        });
+        
+        printGuideButton.addEventListener('mouseleave', () => {
+            printGuideButton.style.background = '#34C759';
+            printGuideButton.style.transform = 'scale(1)';
+        });
+        
+        // Add buttons to container
+        downloadContainer.appendChild(downloadButton);
+        downloadContainer.appendChild(printGuideButton);
+        
+        // Add to document
+        document.body.appendChild(downloadContainer);
+        
+        // Auto remove after 15 seconds
+        setTimeout(() => {
+            if (downloadContainer && downloadContainer.parentNode) {
+                downloadContainer.remove();
+            }
+        }, 15000);
+    }
+    
+    // Download marker
+    downloadMarker(markerData) {
+        // Create download link
+        const link = document.createElement('a');
+        link.download = `${markerData.name.replace(/\s+/g, '_')}_marker.png`;
+        link.href = markerData.pattern.toDataURL('image/png');
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('Marker downloaded:', markerData.name);
+        
+        // Show success message
+        this.showNotification(`Marker ${markerData.name} downloaded successfully!`);
+    }
+    
+    // Show print guide
+    showPrintGuide() {
+        // Remove existing print guide if any
+        const existingGuide = document.getElementById('print-guide-modal');
+        if (existingGuide) {
+            existingGuide.remove();
+        }
+        
+        // Create print guide modal
+        const modal = document.createElement('div');
+        modal.id = 'print-guide-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow-y: auto;
+        `;
+        
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: #1c1c1e;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: white;
+        `;
+        
+        content.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #007AFF; margin: 0;">📖 Panduan Mencetak Marker</h2>
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                    background: none;
+                    border: none;
+                    color: #8e8e93;
+                    font-size: 24px;
+                    cursor: pointer;
+                    padding: 0;
+                    width: 30px;
+                    height: 30px;
+                ">×</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #007AFF; margin-bottom: 10px;">1. Download Marker</h3>
+                <p style="color: #8e8e93; margin-bottom: 15px; line-height: 1.5;">
+                    Klik tombol "📥 Download Marker" untuk mengunduh file PNG marker.
+                </p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #007AFF; margin-bottom: 10px;">2. Ukuran Marker</h3>
+                <ul style="color: #8e8e93; margin-bottom: 15px; line-height: 1.6;">
+                    <li>• <strong>Ukuran Standar:</strong> 10cm x 10cm</li>
+                    <li>• <strong>Ukuran Minimum:</strong> 8cm x 8cm</li>
+                    <li>• <strong>Ukuran Maksimum:</strong> 15cm x 15cm</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #007AFF; margin-bottom: 10px;">3. Kertas yang Disarankan</h3>
+                <ul style="color: #8e8e93; margin-bottom: 15px; line-height: 1.6;">
+                    <li>• <strong>Kertas Foto:</strong> Kualitas terbaik, tahan lama</li>
+                    <li>• <strong>Kertas HVS 80gsm:</strong> Kualitas baik, ekonomis</li>
+                    <li>• <strong>Kertas Karton:</strong> Lebih tebal, lebih stabil</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #007AFF; margin-bottom: 10px;">4. Pengaturan Printer</h3>
+                <ul style="color: #8e8e93; margin-bottom: 15px; line-height: 1.6;">
+                    <li>• <strong>Quality:</strong> High/Photo Quality</li>
+                    <li>• <strong>Color Mode:</strong> Color (Full Color)</li>
+                    <li>• <strong>Paper Type:</strong> Photo Paper</li>
+                    <li>• <strong>Margins:</strong> Minimum atau None</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #007AFF; margin-bottom: 10px;">5. Langkah-langkah Cetak</h3>
+                <ol style="color: #8e8e93; margin-bottom: 15px; line-height: 1.6;">
+                    <li>Buka file marker PNG dengan Paint/Preview</li>
+                    <li>Set paper size ke A4</li>
+                    <li>Set scale ke 100% (ukuran 10cm x 10cm)</li>
+                    <li>Set quality ke High/Photo</li>
+                    <li>Klik Print</li>
+                </ol>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: #007AFF; margin-bottom: 10px;">6. Tips Penggunaan</h3>
+                <ul style="color: #8e8e93; margin-bottom: 15px; line-height: 1.6;">
+                    <li>• Potong marker dengan rapi mengikuti border</li>
+                    <li>• Letakkan di permukaan datar dan stabil</li>
+                    <li>• Pastikan pencahayaan cukup (tidak terlalu terang/gelap)</li>
+                    <li>• Jaga jarak kamera 20-50cm dari marker</li>
+                </ul>
+            </div>
+            
+            <div style="background: #2c2c2e; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <h4 style="color: #34C759; margin-bottom: 10px;">⚠️ Penting!</h4>
+                <p style="color: #8e8e93; margin: 0; line-height: 1.5;">
+                    Pastikan marker dicetak dengan kualitas tinggi dan ukuran yang tepat. 
+                    Marker yang blur atau ukuran salah akan menyebabkan deteksi AR tidak akurat.
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="this.parentElement.parentElement.remove()" style="
+                    background: #8e8e93;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 25px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Tutup</button>
+                <button onclick="this.parentElement.parentElement.remove(); window.arApp.downloadMarker(window.arApp.currentMarker);" style="
+                    background: #007AFF;
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 25px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">Download Marker</button>
+            </div>
+        `;
+        
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        
+        // Auto remove after 30 seconds
+        setTimeout(() => {
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+        }, 30000);
     }
     
     // Populate mobile model gallery UI
@@ -674,23 +1386,87 @@ class ARModelViewer {
     
     // Simulate AR tracker detection
     simulateTrackerDetection() {
-        // Simulate tracker detection after 3 seconds
+        // Start marker detection
+        this.startMarkerDetection();
+    }
+    
+    // Start marker detection
+    startMarkerDetection() {
+        console.log('Starting marker detection...');
+        this.updateTrackerStatus('Looking for markers...', '🔍');
+        
+        // Simulate marker detection after 2 seconds
         setTimeout(() => {
-            this.trackerDetected = true;
-            this.updateTrackerStatus('Tracker detected!', '✅');
-            
-            // Show AR features
-            this.showAxisLines();
-            this.showObjectOverlay();
-            
-            // Load default model if one is selected (no volume modal for AR mode)
-            if (this.selectedModel) {
-                this.loadMobileModel(this.selectedModel.file, this.selectedModel.audio);
-            } else {
-                // Load default model
-                this.loadMobileModel('aztec.glb', 'aztec.mp3');
+            this.simulateMarkerDetection();
+        }, 2000);
+    }
+    
+    // Simulate marker detection
+    simulateMarkerDetection() {
+        // Simulate detecting Aztec marker first
+        const aztecMarker = this.markerPatterns.get('aztec');
+        if (aztecMarker) {
+            this.detectMarker(aztecMarker);
+        }
+    }
+    
+    // Detect marker
+    detectMarker(markerData) {
+        console.log('Marker detected:', markerData.name);
+        this.markerDetected = true;
+        this.currentMarker = markerData;
+        
+        // Update tracker status
+        this.updateTrackerStatus(`Marker detected: ${markerData.name}`, '✅');
+        
+        // Show AR features
+        this.showAxisLines();
+        this.showObjectOverlay();
+        
+        // Load model for this marker
+        this.loadMobileModel(markerData.model, markerData.audio);
+        
+        // Show marker info
+        this.showMarkerInfo(markerData);
+    }
+    
+    // Show marker info
+    showMarkerInfo(markerData) {
+        // Create marker info overlay
+        const markerInfo = document.createElement('div');
+        markerInfo.id = 'marker-info';
+        markerInfo.style.cssText = `
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            z-index: 1000;
+            max-width: 200px;
+        `;
+        
+        markerInfo.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 5px; color: #007AFF;">${markerData.name}</div>
+            <div style="color: #8e8e93; font-size: 12px;">Model: ${markerData.model}</div>
+            <div style="color: #8e8e93; font-size: 12px;">Audio: ${markerData.audio}</div>
+        `;
+        
+        // Add to canvas container
+        const canvasContainer = document.getElementById('mobile-canvas-container');
+        if (canvasContainer) {
+            canvasContainer.appendChild(markerInfo);
+        }
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (markerInfo && markerInfo.parentNode) {
+                markerInfo.remove();
             }
-        }, 3000);
+        }, 5000);
     }
     
     // Enhanced fallback mode for non-WebXR devices
@@ -702,6 +1478,9 @@ class ARModelViewer {
         
         // Ensure all AR features work in fallback mode
         this.ensureFallbackFeatures();
+        
+        // Try to initialize camera feed
+        this.setupCameraFeedFallback();
     }
     
     // Update AR instructions for fallback mode
@@ -710,12 +1489,77 @@ class ARModelViewer {
         const instructionP = document.querySelector('.instruction-text p');
         
         if (instructionText) {
-            instructionText.textContent = 'AR Mode (Fallback)';
+            instructionText.textContent = 'Marker-Based AR Mode';
         }
         
         if (instructionP) {
-            instructionP.textContent = 'Simulated AR experience - drag to rotate, pinch to zoom';
+            instructionP.textContent = 'Point your camera at the AR marker to see the 3D model';
         }
+    }
+    
+    // Show marker instructions
+    showMarkerInstructions() {
+        // Remove existing instructions if any
+        const existingInstructions = document.getElementById('marker-instructions');
+        if (existingInstructions) {
+            existingInstructions.remove();
+        }
+        
+        // Create marker instructions
+        const instructions = document.createElement('div');
+        instructions.id = 'marker-instructions';
+        instructions.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+            z-index: 3000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        instructions.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 20px;">📱</div>
+            <h2 style="margin-bottom: 15px; color: #007AFF;">Marker-Based AR</h2>
+            <p style="margin-bottom: 20px; color: #8e8e93; line-height: 1.5;">
+                To use AR features, you need to print and use the AR markers. Each marker corresponds to a specific 3D model.
+            </p>
+            <div style="background: #2c2c2e; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+                <h4 style="color: #007AFF; margin-bottom: 10px;">How to use:</h4>
+                <ul style="color: #8e8e93; font-size: 14px; line-height: 1.6;">
+                    <li>• Download the AR markers from the sidebar</li>
+                    <li>• Print the markers on paper</li>
+                    <li>• Point your camera at the marker</li>
+                    <li>• The 3D model will appear on the marker</li>
+                </ul>
+            </div>
+            <button onclick="this.parentElement.remove()" style="
+                background: #007AFF;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 25px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            ">Got it!</button>
+        `;
+        
+        document.body.appendChild(instructions);
+        
+        // Auto remove after 15 seconds
+        setTimeout(() => {
+            if (instructions && instructions.parentNode) {
+                instructions.remove();
+            }
+        }, 15000);
     }
     
     // Ensure fallback features work properly
